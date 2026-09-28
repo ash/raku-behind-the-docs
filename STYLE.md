@@ -79,7 +79,7 @@ At most two per corner, and only when they tell the reader something.
 |---|---|
 | `trap` | by design, but regularly surprises people who write Raku |
 | `quirk` | Rakudo behaviour that is surprising and probably unintended, but harmless |
-| `bug` | shown as "Rakudo bug?": behaviour that looks unintended. Keep it only with evidence you can point to — the documentation's own words (check them in the doc checkout), a hang or infinite recursion, an internal object or message leaking out (NQPMu, VMNull, "cannot unbox", a raw VM error), a crash on valid input, or disagreement with a closely related form in Rakudo itself. Name the evidence in the prose and the version, "Rakudo 2026.08". Describe what happens and why it looks wrong; never assert that it is a bug, and never tag documented behaviour. Behaviour that is only surprising is a `quirk`. |
+| `bug` | shown as "Bug?": behaviour that looks unintended. Keep it only with evidence you can point to — the documentation's own words (check them in the doc checkout), a hang or infinite recursion, an internal object or message leaking out (NQPMu, VMNull, "cannot unbox", a raw VM error), a crash on valid input, or disagreement with a closely related form in Rakudo itself. Name the evidence in the prose and the version, "Rakudo 2026.08". Describe what happens and why it looks wrong; never assert that it is a bug, and never tag documented behaviour. Behaviour that is only surprising is a `quirk`. |
 | `undocumented` | docs.raku.org does not describe it (the sheets' `D:no`) |
 | `unasserted` | Roast does not assert it (the sheets' `R:no`) |
 

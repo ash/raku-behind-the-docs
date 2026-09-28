@@ -43,7 +43,7 @@ my %TAGS =
     'undocumented' => 'Not in the docs',
     'unasserted'   => 'Not in Roast',
     'quirk'        => 'Quirk',
-    'bug'          => 'Rakudo bug?',
+    'bug'          => 'Bug?',
     'trap'         => 'Trap',
     '6e'           => '6.e',
 ;
@@ -682,6 +682,7 @@ my $THEME-SCRIPT = q:to/JS/;
   mql.addEventListener('change', function () { if (stored() === 'system') apply('system'); });
   window.__applyTheme = apply;
   try { if (localStorage.getItem('corners-predict') === '1') document.documentElement.classList.add('predict-on'); } catch (e) {}
+  try { if (localStorage.getItem('corners-toc-folded') === '1') document.documentElement.classList.add('toc-folded'); } catch (e) {}
 })();
 JS
 
@@ -723,9 +724,11 @@ sub toc-html(@chapters, $current --> Str) {
             @h.push: '<div class="toc-part">' ~ esc($part) ~ '</div><ol class="toc-list">';
         }
         my $is-cur = $current.defined && $current === $ch;
-        @h.push: '<li' ~ ($is-cur ?? ' class="current"' !! '') ~ ' data-slug="' ~ $ch.slug ~ '">'
+        my $fold = $is-cur && $ch.corners;
+        @h.push: '<li' ~ ($is-cur ?? ' class="current' ~ ($fold ?? ' has-corners' !! '') ~ '"' !! '') ~ ' data-slug="' ~ $ch.slug ~ '">'
                ~ '<a href="' ~ $BASE ~ '/' ~ $ch.slug ~ '/"><span class="n">' ~ $ch.label ~ '</span><span class="t">' ~ inline($ch.title) ~ '</span></a>';
-        if $is-cur && $ch.corners {
+        if $fold {
+            @h.push: '<button class="toc-fold" type="button" aria-expanded="true" aria-label="Hide this chapter’s corners" title="Hide the corners">▾</button>';
             @h.push: '<ol class="toc-corners">' ~ $ch.corners.map({
                 '<li><a href="#' ~ .id ~ '"><span class="n">' ~ .num ~ '</span><span class="t">' ~ inline(.title) ~ '</span></a></li>'
             }).join ~ '</ol>';

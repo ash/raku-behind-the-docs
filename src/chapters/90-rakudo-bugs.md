@@ -1,11 +1,11 @@
 ---
-title: Possible Rakudo Bugs
+title: Possible Bugs
 part: Appendices
 kind: appendix
-summary: Every behaviour the chapters mark as a possible Rakudo bug, with the evidence that makes it look unintended and the smallest program that shows it.
+summary: Every behaviour the chapters mark as a possible bug, with the evidence that makes it look unintended and the smallest program that shows it.
 ---
 
-Some corners in this book carry the tag **Rakudo bug?**. It marks a behaviour
+Some corners in this book carry the tag **Bug?**. It marks a behaviour
 of Rakudo that looks unintended: something a program can run into, and could
 come to depend on, although there is a reason to think it is not meant to
 work that way. This appendix collects all of them in chapter order, so that
