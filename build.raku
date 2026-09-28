@@ -950,6 +950,7 @@ sub MAIN(
     mkdir OUT ~ '/corners' unless (OUT ~ '/corners').IO.d;
     spurt OUT ~ '/corners/index.html', corners-page(@chapters, %stats);
     for @chapters.kv -> $i, $ch {
+        next if $only && !selected($ch);
         my $dir = OUT ~ '/' ~ $ch.slug;
         mkdir $dir unless $dir.IO.d;
         spurt $dir ~ '/index.html', chapter-page(@chapters, $i, $rakupp, $rakupp-version);
