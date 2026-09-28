@@ -1445,7 +1445,7 @@ at example.raku:2
 ```
 
 ## `index` and its relatives refuse a regex; `substr` dies trying
-tags: bug
+tags: quirk
 
 `index`, `rindex`, `indices`, `starts-with` and `ends-with` have no form that
 takes a regex, and refuse one with `X::Multi::NoMatch`. `contains` accepts a

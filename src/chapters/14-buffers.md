@@ -2210,7 +2210,7 @@ Can only read 1..24 bits from position 0 in buffer '$b', you tried: 25
 `read-ubits(4, 8)` takes the low half of 0x12 and the high half of 0x34.
 
 ## `read-bits` of zero bits is -1
-tags: bug
+tags: quirk
 
 Zero bits hold the number 0, and `read-ubits(p, 0)` says so, but in Rakudo
 2026.08 `read-bits`, its signed counterpart, answers -1. The documentation
