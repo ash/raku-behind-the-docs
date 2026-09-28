@@ -542,7 +542,7 @@ sub render-example(Example $ex, Str $rakupp, Str $rakupp-version --> Str) {
     my $stdin-attr = $ex.stdin ?? ' data-stdin="' ~ esc-attr($ex.stdin) ~ '"' !! '';
     if $ex.kind eq 'run' {
         @h.push: '<div class="code"><pre class="src" data-src' ~ $stdin-attr ~ '>' ~ $code-html ~ '</pre>'
-               ~ '<button class="run" type="button" title="Edit and run it here (Raku++ in your browser)">▶ Run</button></div>';
+               ~ '<button class="run" type="button" title="Edit and run this example here: Raku++ runs it in your browser">▶ Run in Raku++</button></div>';
     }
     else {
         my $label = $ex.kind eq 'local' ?? 'run it locally' !! 'not run';
@@ -555,7 +555,7 @@ sub render-example(Example $ex, Str $rakupp, Str $rakupp-version --> Str) {
     if $ex.expected.defined {
         my $out = $ex.expected;
         @h.push: '<div class="out" data-hidden="0">'
-               ~ '<div class="lbl">Rakudo prints</div>'
+               ~ '<div class="lbl">Reference output</div>'
                ~ '<pre class="out-text">' ~ (esc($out) || '<span class="empty">(nothing)</span>') ~ '</pre>'
                ~ ($ex.expected-err.defined
                     ?? '<div class="lbl err">and on standard error</div><pre class="err-text">' ~ esc($ex.expected-err) ~ '</pre>'
@@ -578,7 +578,7 @@ sub render-example(Example $ex, Str $rakupp, Str $rakupp-version --> Str) {
             }
             @h.push: '<details class="engine-note"><summary>The editor’s engine, Raku++, prints something else here</summary>'
                    ~ '<pre>' ~ esc($shown) ~ '</pre>'
-                   ~ '<p>Measured with ' ~ esc($rakupp-version) ~ '. The book shows what Rakudo prints; the editor runs Raku++ compiled to WebAssembly.</p>'
+                   ~ '<p>Measured with ' ~ esc($rakupp-version) ~ '. The book shows the reference compiler’s output; the editor runs Raku++ compiled to WebAssembly.</p>'
                    ~ '</details>';
         }
     }
@@ -705,7 +705,7 @@ sub site-foot(--> Str) {
     my $colophon = %CHAPTER-BY-SLUG<colophon>;
     '<p><b>' ~ esc(%BOOK<title>) ~ '</b> · ' ~ esc(%BOOK<project>) ~ ' · Edited by ' ~ esc(%BOOK<editor>) ~ '</p>'
     ~ '<p>The text was written by Claude, Anthropic’s model, from the Raku++ project’s findings. '
-    ~ 'Every output was printed by ' ~ esc(%BOOK<oracle>) ~ '.'
+    ~ 'Every output is checked against the reference compiler, ' ~ esc(%BOOK<oracle>) ~ '.'
     ~ ($colophon ?? ' <a href="' ~ $BASE ~ '/colophon/">Colophon</a>' !! '')
     ~ (%BOOK<repo> ?? ' · <a href="https://' ~ esc-attr(%BOOK<repo>) ~ '">Source</a>' !! '')
     ~ '</p>'
@@ -774,7 +774,7 @@ sub home-page(@chapters, %stats --> Str) {
            ~ '</section>';
     @h.push: '<section class="stats">'
            ~ '<div><b>' ~ %stats<corners> ~ '</b><span>corners</span></div>'
-           ~ '<div><b>' ~ %stats<examples> ~ '</b><span>examples, each checked against ' ~ esc(%BOOK<oracle>) ~ '</span></div>'
+           ~ '<div><b>' ~ %stats<examples> ~ '</b><span>examples, each checked against the reference compiler, ' ~ esc(%BOOK<oracle>) ~ '</span></div>'
            ~ '<div><b>' ~ %stats<undocumented> ~ '</b><span>behaviours not in the official docs</span></div>'
            ~ '</section>';
     my %parts = %BOOK<parts>.list;

@@ -11,8 +11,8 @@ The text was written by Claude, Anthropic's model, from the Raku++ project's
 findings. Raku++ is a second implementation of Raku, written from scratch, and
 building it meant asking, for every construct, what exactly Rakudo does. The
 answers were kept as semantics sheets, one per area of the language: each
-behaviour stated in plain words, with a probe program and the output Rakudo
-printed for it, and marked with whether the official documentation describes
+behaviour stated in plain words, with a probe program and the output the
+reference compiler printed for it, and marked with whether the official documentation describes
 it and whether Roast, the language's test suite, asserts it. The project also
 kept an operator-by-operator behaviour matrix, a run of every example in the
 official documentation on both engines, and notes on the traps met while
@@ -23,13 +23,14 @@ Andrew Shitov initiated the book, coordinated the work and edited it.
 ### How it is checked
 
 No output in the book was typed by hand. The book is built by a generator
-written in Raku and run by Raku++. Every example is run through Rakudo, and
-the build refuses to produce the site if any output on any page differs from
-what Rakudo printed. The same examples are run through Raku++, and where it
-prints something else the page says so beside the example, because the Run
-buttons use Raku++ compiled to WebAssembly.
+written in Raku and run by Raku++. Every example is checked against the
+reference compiler of Raku, Rakudo, and the build refuses to produce the site
+if any output on any page differs from the reference output. The same
+examples are run through Raku++, and where it prints something else the page
+says so beside the example, because the Run buttons use Raku++ compiled to
+WebAssembly.
 
-This edition was checked against Rakudo v2026.08.
+This edition was checked against the reference compiler, Rakudo v2026.08.
 
 ### Where it lives
 

@@ -822,8 +822,8 @@ result.
 
 ## An output that changes between runs cannot be verified
 
-This book runs every example twice. The build keeps the output Rakudo
-printed for each example; with `--fresh` it runs every example again and
+This book runs every example twice. The build keeps the reference
+output of each example; with `--fresh` it runs every example again and
 fails if any prints something different. An example whose output changes
 from run to run cannot be checked, because no single text is right, and the
 traps above are where such outputs come from. A probe can check itself the

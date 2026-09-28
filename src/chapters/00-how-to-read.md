@@ -14,12 +14,13 @@ Every corner has the same shape. The heading states the behaviour as a claim.
 A paragraph or two says what happens and why. Then comes a program, usually a
 few lines long, and exactly what it prints.
 
-## Every output in this book was printed by Rakudo
+## Every output is checked against the reference compiler
 
-The outputs are not typed by hand. When the book is built, every example is
-run through Rakudo, the reference implementation of Raku, and the build stops
-if a single character differs from what the page says. The version used is
-named on the cover page; this edition was checked against Rakudo v2026.08.
+The outputs are not typed by hand. Each one is the reference output: what the
+reference compiler of Raku, Rakudo, prints for the example. When the book is
+built, every example is run again and compared, and the build stops if a
+single character differs from what the page says. This edition was checked
+against Rakudo v2026.08.
 
 ```raku
 say 0.1 + 0.2 == 0.3;
@@ -38,7 +39,7 @@ The behaviours themselves were collected by the Raku++ project while it built
 a second implementation of Raku from scratch. Building a second engine means
 asking, for every construct, what exactly the first one does, including the
 cases nobody wrote down. Those answers were recorded with a probe program for
-each, checked against the Rakudo binary, and then compared with the official
+each, checked against the reference compiler, and then compared with the official
 documentation and with Roast, the language's test suite. This book is those
 findings, rewritten to be read.
 
@@ -100,12 +101,12 @@ editor where you can change the code and run it again, as many times as you
 like, without leaving the page. The program runs in your browser; nothing is
 sent anywhere.
 
-The engine in the editor is Raku++, compiled to WebAssembly, not Rakudo. On
-most examples the two agree. Where they do not, the page says so under the
+The editor runs Raku++, compiled to WebAssembly. On most examples it prints
+exactly the reference output. Where it does not, the page says so under the
 example and shows what the editor will print, so the Run button never
-contradicts the book without warning. The outputs in the book are always
-Rakudo's.
+contradicts the book without warning. The outputs in the book are always the
+reference compiler's.
 
 Examples that need threads, files or other processes cannot run in a browser
 tab. They are marked **run it locally**: save the code as a file and run it
-with `rakudo`.
+with the reference compiler, `rakudo`.

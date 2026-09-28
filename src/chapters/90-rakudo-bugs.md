@@ -35,7 +35,7 @@ evidence of one of these kinds:
 
 Every behaviour below was reproduced on Rakudo v2026.08 when this book was
 built: the examples are run like all the others, and the outputs are the ones
-Rakudo printed. A later Rakudo may behave differently, and the build that
+it printed. A later Rakudo may behave differently, and the build that
 checks the book against it will show which entries have changed.
 
 Each entry's heading says what happens. The entry opens with the chapter it
