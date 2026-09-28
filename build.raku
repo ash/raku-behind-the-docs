@@ -542,7 +542,7 @@ sub render-example(Example $ex, Str $rakupp, Str $rakupp-version --> Str) {
     my $stdin-attr = $ex.stdin ?? ' data-stdin="' ~ esc-attr($ex.stdin) ~ '"' !! '';
     if $ex.kind eq 'run' {
         @h.push: '<div class="code"><pre class="src" data-src' ~ $stdin-attr ~ '>' ~ $code-html ~ '</pre>'
-               ~ '<button class="run" type="button" title="Edit and run this example here: Raku++ runs it in your browser">▶ Run in Raku++</button></div>';
+               ~ '<button class="run" type="button" title="Edit and run this example here: Raku++ runs it in your browser">▶ Run</button></div>';
     }
     else {
         my $label = $ex.kind eq 'local' ?? 'run it locally' !! 'not run';
