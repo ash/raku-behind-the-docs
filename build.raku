@@ -541,15 +541,19 @@ sub render-example(Example $ex, Str $rakupp, Str $rakupp-version --> Str) {
     @h.push: '<figure class="ex ex-' ~ $ex.kind ~ '" id="' ~ $ex.id ~ '">';
     my $stdin-attr = $ex.stdin ?? ' data-stdin="' ~ esc-attr($ex.stdin) ~ '"' !! '';
     if $ex.kind eq 'run' {
-        @h.push: '<div class="code"><pre class="src" data-src' ~ $stdin-attr ~ '>' ~ $code-html ~ '</pre>'
-               ~ '<button class="run" type="button" title="Edit and run this example here: Raku++ runs it in your browser">▶ Run</button></div>';
+        # A live raku.online editor from the start: raku.js takes the
+        # pre-highlighted <pre data-raku> over on load, and starts its engine
+        # only when the reader presses Run.
+        @h.push: '<div class="code embed"><div class="engine-cap">Raku++, running in your browser</div>'
+               ~ '<pre class="src" data-raku' ~ $stdin-attr ~ '>' ~ $code-html ~ '</pre></div>';
     }
     else {
         my $label = $ex.kind eq 'local' ?? 'run it locally' !! 'not run';
         @h.push: '<div class="code"><pre class="src">' ~ $code-html ~ '</pre>'
                ~ '<span class="local-label">' ~ $label ~ '</span></div>';
     }
-    if $ex.stdin {
+    # A live editor shows its standard input itself.
+    if $ex.stdin && $ex.kind ne 'run' {
         @h.push: '<div class="stdin"><span class="lbl">standard input</span><pre>' ~ esc($ex.stdin) ~ '</pre></div>';
     }
     if $ex.expected.defined {
@@ -661,7 +665,7 @@ my $SHELL = q:to/HTML/;
 <footer class="site-foot">%%FOOT%%</footer>
 </main>
 </div>
-<script src="/raku.js" data-selector="[data-raku-never]" data-playground="off" defer></script>
+<script src="/raku.js" data-playground="off" defer></script>
 <script src="%%BASE%%/assets/book.js?v=%%VER%%" defer></script>
 <script src="/theme/shell.js" defer></script>
 </body>

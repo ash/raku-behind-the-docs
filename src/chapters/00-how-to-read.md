@@ -96,16 +96,15 @@ sign of the divisor, so the two always agree: `-7 == 2 * (-7 div 2) + -7 % 2`.
 
 ## The Run button
 
-Each runnable example has a **▶ Run** button. It turns the example into an
-editor where you can change the code and run it again, as many times as you
-like, without leaving the page. The program runs in your browser; nothing is
-sent anywhere.
+Each runnable example is a live editor. Change the code if you like and press
+**▶ Run**, as many times as you like, without leaving the page. The program
+runs in your browser; nothing is sent anywhere.
 
-The editor runs Raku++, compiled to WebAssembly. On most examples it prints
-exactly the reference output. Where it does not, the page says so under the
-example and shows what the editor will print, so the Run button never
-contradicts the book without warning. The outputs in the book are always the
-reference compiler's.
+The editors run Raku++, compiled to WebAssembly, as the caption above each
+one says. On most examples it prints exactly the reference output shown under
+the editor. Where it does not, the page says so under the example and shows
+what the editor will print, so the Run button never contradicts the book
+without warning. The outputs in the book are always the reference compiler's.
 
 Examples that need threads, files or other processes cannot run in a browser
 tab. They are marked **run it locally**: save the code as a file and run it
