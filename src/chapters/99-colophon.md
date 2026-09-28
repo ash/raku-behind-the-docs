@@ -33,7 +33,7 @@ This edition was checked against Rakudo v2026.08.
 
 ### Where it lives
 
-The book is published at `behind.raku.online`. Its source, the chapters as
+The book is published at `raku.online/deep`, a section of the raku.online site. Its source, the chapters as
 Markdown and the generator, is at `github.com/ash/raku-behind-the-docs`.
 Corrections are welcome as issues or pull requests there; a correction that
 comes with a program and Rakudo's output for it is the easiest to act on.

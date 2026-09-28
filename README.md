@@ -23,7 +23,17 @@ Results are cached in `cache/rakudo.tsv` and `cache/rakupp.tsv`, keyed by the
 engine's version line, the code and its standard input. A new Rakudo or a
 rebuilt rakupp re-runs everything once.
 
-Preview with any static server over `out/`, for example the rakus server from the raku++ repository: `rakupp showcase/rakus/rakus.raku 8341 <book>/out`.
+## Publishing
+
+The book is a section of raku.online, at `raku.online/deep/`. Its pages are
+built for that mount (`mount` in `src/book.raku`) and load the site's shared
+bar (`/theme/shell.js`, `/theme/shell.css`) and the in-page engine
+(`/raku.js`) from the raku.online origin. To publish, build and verify here,
+then in a raku.online checkout run `./build.sh deep`, which copies `out/`
+into `www/deep/`; raku.online is served from its committed `www/`.
+
+To preview, build here, run `./build.sh deep` in raku.online, and serve its
+`www/` with any static server.
 
 ## Layout
 
@@ -31,9 +41,9 @@ Preview with any static server over `out/`, for example the rakus server from th
 |---|---|
 | `src/book.raku` | title, subtitle, byline, oracle name, part introductions |
 | `src/chapters/NN-slug.md` | one chapter each, ordered by file name |
-| `src/theme/` | `book.css`, `book.js`, copied to `out/theme/` |
+| `src/assets/` | `book.css`, `book.js`, copied to `out/assets/` |
 | `cache/` | verified engine results |
-| `out/` | the built site |
+| `out/` | the built site (not committed; published through raku.online) |
 | `PLAN.md` | the table of contents still to write, with sources |
 
 ## Chapter format

@@ -144,6 +144,9 @@ sub link-target(Str $t --> Str) {
         note "warning: link to a chapter that does not exist yet: $t";
         return '#';
     }
+    if @p[1] && $ch.corners && !$ch.corners.first({ .id eq @p[1] }) {
+        note "warning: link to a corner that does not exist: $t";
+    }
     $BASE ~ '/' ~ $ch.slug ~ '/' ~ (@p[1] ?? '#' ~ @p[1] !! '')
 }
 
@@ -407,7 +410,7 @@ sub load-cache(Str $label) {
         for $f.IO.lines -> $l {
             my @f = $l.split("\t");
             next unless @f.elems == 4;
-            %c{@f[0]} = [ +@f[1], tsv-unesc(@f[2]), tsv-unesc(@f[3]) ];
+            %c{@f[0]} = [ +@f[1], hide-run-dir(cap(tsv-unesc(@f[2].substr(0, 2 * OUTPUT-CAP)))), hide-run-dir(cap(tsv-unesc(@f[3].substr(0, 2 * OUTPUT-CAP)))) ];
         }
     }
     %CACHE{$label} = %c;
@@ -458,13 +461,41 @@ sub run-one(Str $engine, Example $ex, Int $timeout) {
     # Some messages name the program by its absolute path; the book shows the
     # file as the reader would have it, `example.raku` in the current directory.
     my $abs = $*CWD.Str ~ '/' ~ $dir ~ '/';
-    [ $exit, slurp("$dir/out.txt").subst($abs, '', :g), slurp("$dir/err.txt").subst($abs, '', :g) ]
+    [ $exit, cap(hide-run-dir(slurp("$dir/out.txt").subst($abs, '', :g))), cap(hide-run-dir(slurp("$dir/err.txt").subst($abs, '', :g))) ]
 }
 
+# No example in the book prints more than a screenful, but a program that
+# loops while printing (an engine bug, say) can produce hundreds of megabytes
+# before the alarm stops it. Keep a bounded prefix, so one runaway run cannot
+# bloat the cache that every build reads and rewrites.
+# Any run directory of any build (cache/run-PID), written as an absolute path,
+# becomes `.`: it is where the example ran, and the reader's own directory.
+sub hide-run-dir(Str $s --> Str) {
+    my $root = $*CWD.Str ~ '/' ~ CACHE ~ '/run-';
+    $s.contains($root) ?? $s.subst(/ $root \d+ '/'? /, { $/.ends-with('/') ?? '' !! '.' }, :g) !! $s
+}
+constant OUTPUT-CAP = 20_000;
+sub cap(Str $s --> Str) {
+    $s.chars > OUTPUT-CAP
+        ?? $s.substr(0, OUTPUT-CAP) ~ "\n… (cut: the program printed " ~ $s.chars ~ " characters)"
+        !! $s
+}
+
+# With --fresh, a cached Rakudo result is run again and compared: an example
+# whose output changes between runs (hash order, timing) would make the book
+# flicker the next time the cache is rebuilt.
+my $FRESH = False;
+my @FLICKER;
 sub result-for(Str $label, Str $engine, Str $version, Example $ex, Bool $run-missing, Int $timeout) {
     my $key = cache-key($version, $ex);
     %USED{$label}{$key} = True;
-    return %CACHE{$label}{$key} if %CACHE{$label}{$key}:exists;
+    if %CACHE{$label}{$key}:exists {
+        return %CACHE{$label}{$key} unless $FRESH && $run-missing && $label eq 'rakudo';
+        my $old = %CACHE{$label}{$key};
+        my $new = run-one($engine, $ex, $timeout);
+        @FLICKER.push($ex.file ~ ':' ~ $ex.line) if $new[1] ne $old[1] || $new[2] ne $old[2];
+        return $old;
+    }
     return Nil unless $run-missing;
     my $r = run-one($engine, $ex, $timeout);
     %CACHE{$label}{$key} = $r;
@@ -537,6 +568,8 @@ sub render-example(Example $ex, Str $rakupp, Str $rakupp-version --> Str) {
         my ($exit, $out, $err) = |$ex.rakupp;
         if engines-differ($ex) {
             my $shown = strip-nl($out);
+            $shown = $shown.lines.head(30).join("\n") ~ "\n…" if $shown.lines > 30;
+            $shown = $shown.substr(0, 3000) ~ " …" if $shown.chars > 3000;
             if $shown eq '' && $err.trim {
                 $shown = '(nothing on standard output; standard error says:)' ~ "\n" ~ $err.lines.head(4).join("\n");
             }
@@ -601,7 +634,8 @@ my $SHELL = q:to/HTML/;
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap">
-<link rel="stylesheet" href="%%BASE%%/theme/book.css?v=%%VER%%">
+<link rel="stylesheet" href="/theme/shell.css">
+<link rel="stylesheet" href="%%BASE%%/assets/book.css?v=%%VER%%">
 <script>%%THEME-SCRIPT%%</script>
 </head>
 <body class="%%BODY-CLASS%%">
@@ -627,8 +661,9 @@ my $SHELL = q:to/HTML/;
 <footer class="site-foot">%%FOOT%%</footer>
 </main>
 </div>
-<script src="https://raku.online/raku.js" data-selector="[data-raku-never]" data-playground="off" defer></script>
-<script src="%%BASE%%/theme/book.js?v=%%VER%%" defer></script>
+<script src="/raku.js" data-selector="[data-raku-never]" data-playground="off" defer></script>
+<script src="%%BASE%%/assets/book.js?v=%%VER%%" defer></script>
+<script src="/theme/shell.js" defer></script>
 </body>
 </html>
 HTML
@@ -802,6 +837,79 @@ sub asset-version(@paths --> Str) {
     ($sum.base(36) ~ $len.base(36)).lc.substr(0, 10)
 }
 
+# The divergence report: for every verified chapter, each example on which
+# Raku++ disagrees with Rakudo, with the code and both outputs. Rakudo's side
+# is the verified one. Chapters that are not fully verified are listed and
+# skipped, so nothing in the report rests on an unchecked output.
+sub fence(Str $s --> Str) { "```\n" ~ ($s eq '' ?? '(nothing)' !! $s) ~ "\n```" }
+sub excerpt(Str $s, Int $lines = 12 --> Str) {
+    my @l = strip-nl($s).lines;
+    @l.elems > $lines ?? (|@l.head($lines), "… (" ~ (@l.elems - $lines) ~ " more lines)").join("\n") !! @l.join("\n")
+}
+sub write-report(Str $path, @chapters, %unverified, Str $rakudo-version, Str $rakupp-version) {
+    my @rows;
+    my @body;
+    my ($all-n, $all-diff) = 0, 0;
+    for @chapters -> $ch {
+        next unless $ch.examples;
+        if %unverified{$ch.slug} {
+            @rows.push: '| ' ~ label-prefix($ch) ~ $ch.title ~ ' | — | — | not fully verified yet |';
+            next;
+        }
+        my @both = $ch.examples.grep({ .rakupp.defined && .rakudo.defined });
+        my @diff = @both.grep({ engines-differ($_) });
+        $all-n += @both.elems;
+        $all-diff += @diff.elems;
+        @rows.push: '| ' ~ label-prefix($ch) ~ $ch.title ~ ' | ' ~ @both.elems ~ ' | '
+                  ~ (@both.elems - @diff.elems) ~ ' | ' ~ @diff.elems ~ ' |';
+        next unless @diff;
+        @body.push: '## ' ~ label-prefix($ch) ~ $ch.title, '';
+        # The corner each example belongs to: the last corner heading before it.
+        my %corner-of;
+        my $cur;
+        for $ch.blocks -> %b {
+            $cur = %b<corner> if %b<type> eq 'h2';
+            %corner-of{%b<ex>.id} = $cur if %b<type> eq 'example' && $cur.defined;
+        }
+        for @diff -> $ex {
+            my $c = %corner-of{$ex.id};
+            @body.push: '### ' ~ ($c ?? $c.num ~ ' ' ~ $c.title !! $ex.id) ~ ($ex.kind eq 'local' ?? ' (local)' !! ''), '';
+            @body.push: '`' ~ $ex.file ~ ':' ~ $ex.line ~ '`', '';
+            @body.push: "```raku\n" ~ $ex.code ~ "\n```", '';
+            my ($rx, $ro, $re) = |$ex.rakudo;
+            my ($px, $po, $pe) = |$ex.rakupp;
+            @body.push: 'Rakudo' ~ ($rx ?? " (exit $rx)" !! '') ~ ':', '', fence(excerpt($ro)), '';
+            @body.push: 'stderr:', '', fence(excerpt($re, 6)), '' if $re.trim;
+            @body.push: 'Raku++' ~ ($px ?? " (exit $px)" !! '') ~ ':', '', fence(excerpt($po)), '';
+            @body.push: 'stderr:', '', fence(excerpt($pe, 6)), '' if $pe.trim;
+        }
+    }
+    my $head = qq:to/END/;
+    # Raku++ against the examples of *Raku Behind the Docs*
+
+    Generated by `rakupp build.raku --verify --report=…` in the
+    raku-behind-the-docs repository (github.com/ash/raku-behind-the-docs) on
+    {Date.today}. Do not edit by hand; regenerate it.
+
+    - Oracle: Rakudo {$rakudo-version ~~ / v\d+ [\.\d+]+ / ?? ~$/ !! $rakudo-version} — every Rakudo output below is the one the book
+      prints and the build verifies.
+    - Raku++: {$rakupp-version}.
+
+    An example counts as a divergence when Raku++'s standard output differs from
+    Rakudo's, or when one engine rejects the program and the other runs it.
+    Standard error is shown for context; its wording is not compared. Examples
+    marked *(local)* touch files, processes or threads: the book shows them
+    without a Run button, and they were run here natively.
+
+    In total Raku++ matches Rakudo on {$all-n - $all-diff} of {$all-n} examples.
+
+    | chapter | examples run on both | Raku++ matches | differs |
+    |---|---|---|---|
+    END
+    spurt $path, $head ~ @rows.join("\n") ~ "\n\n" ~ @body.join("\n") ~ "\n";
+    note "report: $all-diff divergences in $all-n examples -> $path";
+}
+
 sub MAIN(
     Bool :$verify = False,         #= run uncached examples on both engines
     Bool :$clean = False,          #= remove out/ before building
@@ -809,13 +917,22 @@ sub MAIN(
     Str  :$rakupp = 'rakupp',      #= the engine the editors run
     Str  :$only = '',              #= work on the chapters whose slug contains this; others may be mid-edit
     Bool :$prune = False,          #= drop cache entries this build did not use (full builds only)
+    Bool :$fresh = False,          #= with --verify: run cached examples again and report any whose output changed
     Int  :$timeout = 20,           #= seconds per example run
+    Str  :$report = '',            #= write a Markdown list of every example where Raku++ differs from Rakudo
+    Str  :$out = OUT,              #= where to write the site
+    Str  :$exclude = '',           #= leave out, entirely, the chapters whose slug contains any of these comma-separated words
 ) {
     %BOOK = EVAL slurp(SRC ~ '/book.raku');
     $BASE = %BOOK<mount> // '';
     my &selected = -> $ch { !$only || $ch.slug.contains($only) };
+    $FRESH = $fresh;
 
+    my $OUT = $out;
     my @files = dir(SRC ~ '/chapters').map(*.Str).grep(*.ends-with('.md')).sort;
+    # A chapter still being written can be left out of a publishable build.
+    my @drop = $exclude.split(',').grep(*.chars);
+    @files = @files.grep(-> $f { my $b = $f.IO.basename; !@drop.first({ $b.contains($_) }) }) if @drop;
     my @chapters;
     my @bodies;
     for @files.kv -> $pos, $f {
@@ -872,6 +989,7 @@ sub MAIN(
     my $elsewhere = 0;
     my $ran = 0;
     my $missing = 0;
+    my %unverified;
     for @chapters -> $ch {
         my $mine = selected($ch);
         my $run-missing = $verify && $mine;
@@ -880,16 +998,20 @@ sub MAIN(
             my $before = %CACHE<rakudo>{cache-key($rakudo-version, $ex)}:exists;
             $ex.rakudo = result-for('rakudo', $rakudo, $rakudo-version, $ex, $run-missing, $timeout);
             $ran++ if $ex.rakudo.defined && !$before;
-            if $ex.kind eq 'run' {
+            if $ex.kind eq 'run' || ($report && $ex.kind eq 'local') {
                 $ex.rakupp = result-for('rakupp', $rakupp, $rakupp-version, $ex, $run-missing, $timeout);
             }
             unless $ex.rakudo.defined {
                 $missing++ if $mine;
+                %unverified{$ch.slug} = True;
                 next;
             }
             my ($exit, $out, $err) = |$ex.rakudo;
             my $where = $ex.file ~ ':' ~ $ex.line;
             my @f;
+            # A path under the build directory would publish this machine's layout.
+            @f.push: "$where: the output contains the build's absolute path; print a relative path or a test instead"
+                if $out.contains($*CWD.Str) || $err.contains($*CWD.Str) || $out.contains($*HOME.Str) || $err.contains($*HOME.Str);
             if strip-nl($out) ne $ex.expected {
                 @f.push: "$where: Rakudo printed\n" ~ $out.lines.map({ '    | ' ~ $_ }).join("\n")
                        ~ "\n  the book says\n" ~ $ex.expected.lines.map({ '    | ' ~ $_ }).join("\n");
@@ -906,6 +1028,7 @@ sub MAIN(
             if $exit != 0 && !$ex.expected-err.defined && $mine {
                 @warnings.push: "$where: exit code $exit";
             }
+            %unverified{$ch.slug} = True if @f;
             if $mine {
                 @failures.append: @f;
             }
@@ -919,9 +1042,16 @@ sub MAIN(
     run 'rm', '-rf', $RUN-DIR if $RUN-DIR.IO.d;
 
     note "ran $ran new example(s) on the oracle" if $ran;
+    if @FLICKER {
+        note "\n" ~ @FLICKER.elems ~ " example(s) printed something different when run again:";
+        note "    $_" for @FLICKER;
+        exit 1;
+    }
+    note "every re-run example printed the same output again" if $fresh && $verify;
     note "$missing example(s) have no cached result yet — build with --verify" if $missing;
     note "$elsewhere example(s) outside --only=$only disagree with the oracle (not checked here)" if $elsewhere;
     .note for @warnings;
+    write-report($report, @chapters, %unverified, $rakudo-version, $rakupp-version) if $report;
     if @failures {
         note "\n" ~ @failures.elems ~ " example(s) disagree with the oracle:\n";
         .note for @failures;
@@ -938,20 +1068,20 @@ sub MAIN(
     }
     %stats<undocumented> = %stats<tag><undocumented> // 0;
 
-    run 'rm', '-rf', OUT if $clean && OUT.IO.d;
-    mkdir OUT unless OUT.IO.d;
-    mkdir OUT ~ '/theme' unless (OUT ~ '/theme').IO.d;
-    my @theme = dir(SRC ~ '/theme').map(*.Str);
+    run 'rm', '-rf', $OUT if $clean && $OUT.IO.d;
+    mkdir $OUT unless $OUT.IO.d;
+    mkdir $OUT ~ '/assets' unless ($OUT ~ '/assets').IO.d;
+    my @theme = dir(SRC ~ '/assets').map(*.Str);
     $VERSION = asset-version([|@theme, |@files]);
-    for @theme -> $t { copy $t, OUT ~ '/theme/' ~ $t.IO.basename }
-    spurt OUT ~ '/CNAME', %BOOK<domain> ~ "\n" if %BOOK<domain>;
+    for @theme -> $t { copy $t, $OUT ~ '/assets/' ~ $t.IO.basename }
+    spurt $OUT ~ '/CNAME', %BOOK<domain> ~ "\n" if %BOOK<domain>;
 
-    spurt OUT ~ '/index.html', home-page(@chapters, %stats);
-    mkdir OUT ~ '/corners' unless (OUT ~ '/corners').IO.d;
-    spurt OUT ~ '/corners/index.html', corners-page(@chapters, %stats);
+    spurt $OUT ~ '/index.html', home-page(@chapters, %stats);
+    mkdir $OUT ~ '/corners' unless ($OUT ~ '/corners').IO.d;
+    spurt $OUT ~ '/corners/index.html', corners-page(@chapters, %stats);
     for @chapters.kv -> $i, $ch {
         next if $only && !selected($ch);
-        my $dir = OUT ~ '/' ~ $ch.slug;
+        my $dir = $OUT ~ '/' ~ $ch.slug;
         mkdir $dir unless $dir.IO.d;
         spurt $dir ~ '/index.html', chapter-page(@chapters, $i, $rakupp, $rakupp-version);
     }
@@ -964,6 +1094,6 @@ sub MAIN(
             $differs++ if engines-differ($ex);
         }
     }
-    note "built {+@chapters} chapter(s), {%stats<corners>} corners, {%stats<examples>} examples -> {OUT}/";
+    note "built {+@chapters} chapter(s), {%stats<corners>} corners, {%stats<examples>} examples -> {$OUT}/";
     note "Raku++ matches Rakudo on {$runnable - $differs} of $runnable runnable examples" if $runnable;
 }

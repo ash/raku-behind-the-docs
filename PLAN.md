@@ -36,3 +36,35 @@ re-verifies every example at build time. STYLE.md has the method.
 | — | 99-colophon.md | colophon | Colophon | Back matter | — |
 
 Roughly 700 corners when complete.
+
+## Already covered elsewhere
+
+- Chapter 5 (containers) took List-Array LA-07, LA-08, LA-09, LA-31, LA-34
+  in full; from LA-01 only the `$` markers in `.raku`; from LA-10 only the
+  `.List` snapshot (`.Array`, `.eager` and the lazy `.List` refusal remain
+  for chapter 9); LA-04's itemized cases (`my @a = $(1, 2)`, `my @y = $r`).
+  It took Hash-Map-Pair HM-18 and HM-19 in full; from HM-14 only that a
+  Map's containers stay live; from HM-06 only the binding part.
+- Chapter 5 found that Compiler-Side CP-15's prose misreads its own output:
+  a sunk call ending in `1` or `0` keeps a `let` change. `let` restores only
+  on an exception or an undefined value.
+- Chapter 3 (whitespace) covers when `{ … }` is a Hash or a Block, and
+  `map` refusing a block that only returns a pair. Left for chapter 10:
+  `my %h = { a => 1 }` warns "Useless use of hash composer".
+
+## Hand-offs
+
+- Chapter 17 (regexes) covers Str.md ST-45 to ST-48 (`.match` and its
+  adverbs); chapter 8 left them out. ST-49 is in chapter 8.
+- Chapter 14 (buffers) covers ST-63's result types, windows-1251 and
+  `:strict`.
+- Chapter 16 (exceptions) covers a Failure checked with `.defined` (NaN in
+  arithmetic, `.Int` the Int type object); chapter 4 shows part of it.
+
+## Findings
+
+Sheet corrections, Rakudo behaviours the sheets lack, and the list of
+examples on which Raku++ differs are collected in the raku++ repository
+(github.com/ash/rakupp), in `docs/dev/findings/BEHIND-THE-DOCS.md` and
+`docs/dev/findings/behind-the-docs/raku-divergences.md`. The second is
+generated: `rakupp build.raku --verify --report=<that path>`.

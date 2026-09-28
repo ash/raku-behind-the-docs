@@ -6,9 +6,9 @@
     'project'  => 'The Raku++ project',
     'editor'   => 'Andrew Shitov',
     'oracle'   => 'Rakudo v2026.08',
-    'domain'   => 'behind.raku.online',
+    'url'      => 'https://raku.online/deep/',
     'repo'     => 'github.com/ash/raku-behind-the-docs',
-    'mount'    => '',
+    'mount'    => '/deep',
     'parts'    => [
         'Reading the code' =>
             'How the compiler decides what a line means: which operator takes the operand, what a quote does to its text, how whitespace changes a parse, and what happens to a value nobody uses.',

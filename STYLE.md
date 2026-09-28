@@ -62,6 +62,8 @@ A sentence or two after the example when the output needs reading.
   ` ```output ` fence followed by a ` ```stderr ` fence with Rakudo's message.
   Do this only when the message teaches something; otherwise print the
   exception type with `try` and `$!.^name`.
+- Rakudo prints several "Useless use" warnings of one program in a random
+  order, so an example must provoke at most one of them.
 - Show a warning with a ` ```stderr ` fence. The build warns about stderr
   that is not declared; declare it or remove its cause.
 - ` ```raku local ` for anything that needs threads, `sleep`, files,
@@ -92,7 +94,7 @@ At most two per corner, and only when they tell the reader something.
 
 Do not
 
-- touch another chapter, `build.raku`, `src/theme/` or `src/book.raku`;
+- touch another chapter, `build.raku`, `src/assets/` or `src/book.raku`;
 - run `git`;
 - run more than one Rakudo process at a time;
 - build with `--clean` or `--prune` (other chapters are being written at the

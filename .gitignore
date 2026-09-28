@@ -2,3 +2,4 @@
 cache/run-*/
 cache/.lock-*
 cache/*.tsv.*
+out/
