@@ -1,0 +1,4 @@
+.DS_Store
+cache/run-*/
+cache/.lock-*
+cache/*.tsv.*

@@ -1,0 +1,44 @@
+Welcome to Rakudo™ v2026.08.my $a = True;\n$a ?? $a = 42 !! $a = 43;	1		===SORRY!=== Error while compiling example.raku\nPrecedence of = is too loose to use inside ?? !!; please parenthesize\nat example.raku:2\n------> $a ?? $a<HERE> = 42 !! $a = 43;\n    expecting any of:\n        infix\n        infix stopper\n
+Welcome to Rakudo™ v2026.08.my $i = 1;\nsay $i + $i++;\n$i = 1;\nsay $i++ + $i;\n$i = 1;\nsay ++$i + ++$i;	0	3\n3\n5\n	
+Welcome to Rakudo™ v2026.08.my $l = 42;\nsay ++$l++;	1		===SORRY!=== Error while compiling example.raku\nOperators '++' and '++' are non-associative and require parentheses\nat example.raku:2\n------> say ++$l++<HERE>;\n    expecting any of:\n        postfix\n
+Welcome to Rakudo™ v2026.08.my $name;\nsay "Hello, " ~ $name ~ "!";	0	Hello, !\n	Use of uninitialized value element of type Any in string context.\nMethods .^name, .raku, .gist, or .say can be used to stringify it to something meaningful.\n  in block <unit> at example.raku line 2\n
+Welcome to Rakudo™ v2026.08.my $x = 0 || 7;\nmy $y = 0 or 7;\nsay "$x $y";	0	7 0\n	WARNINGS for example.raku:\nUseless use of constant integer 7 in sink context (line 2)\n
+Welcome to Rakudo™ v2026.08.my $x = 1, 2;\nsay $x;	0	1\n	WARNINGS for example.raku:\nUseless use of constant integer 2 in sink context (lines 1, 1)\n
+Welcome to Rakudo™ v2026.08.my $x;\nsay so $x = 42;\nsay $x;	0	True\n42\n	
+Welcome to Rakudo™ v2026.08.my @a;\n@a[0] = 1, 2;\nsay @a.raku;\nmy %h;\n%h<k> = 1, 2;\nsay %h.raku;	0	[(1, 2),]\n{:k($(1, 2))}\n	
+Welcome to Rakudo™ v2026.08.my @pairs = 1, 3 Z 2, 4;\nsay @pairs.raku;\nmy $first = (1, 3) X (2, 4);\nsay $first.raku;	0	[(1, 2), (3, 4)]\n$(1, 3)\n	WARNINGS for example.raku:\nUseless use of "X" in expression "my $first = (1, 3) X (2, 4)" in sink context (line 3)\n
+Welcome to Rakudo™ v2026.08.my @r = <b c a> ==> sort();\nsay @r;\n<b c a> ==> sort() ==> my @s;\nsay @s;	0	[b c a]\n[a b c]\n	
+Welcome to Rakudo™ v2026.08.say !1 ~~ 2;\nsay not 1 ~~ 2;\nsay (not 1, 42)[1];\nsay (so 0, 1).raku;	0	False\nTrue\n42\n(Bool::False, 1)\n	
+Welcome to Rakudo™ v2026.08.say "sum: ", [+] 1, 2, 3, " done";	1		Cannot convert string to number: base-10 number must begin with valid digits or '.' in ' <HERE>done' (indicated by <HERE>)\n  in block <unit> at example.raku line 1\n\n
+Welcome to Rakudo™ v2026.08.say (0 andthen "0 is defined");\nsay (5 andthen $_ * 2 andthen $_ + 1);\nsay (Any andthen 2).raku;\nsay (Any orelse "fallback");	0	0 is defined\n11\nEmpty\nfallback\n	
+Welcome to Rakudo™ v2026.08.say (1 + 1 & 2 + 2).raku;\nsay ("a" ~ 1 | 2).raku;\nsay (1 & 2 ^ 3).raku;	0	all(2, 4)\nany("a1", 2)\none(all(1, 2), 3)\n	
+Welcome to Rakudo™ v2026.08.say (1 .. 2 + 3).raku;\nsay 1 <=> 2 == Less;\nsay 1 == 3 <=> 2;	0	1..5\nTrue\nTrue\n	
+Welcome to Rakudo™ v2026.08.say (1 => 2 => 3).raku;\nsay (1 => 2 => 3).value.^name;\nsay (1 ?? 2 !! 3 => 4).raku;\nsay (1 => 2 ?? 3 !! 4).raku;\nsay (a => 1 + 1).raku;	0	1 => 2 => 3\nPair\n2 => 4\n1 => 3\n:a(2)\n	
+Welcome to Rakudo™ v2026.08.say (1, 2 Z 3, 4).raku;\nsay (1, 2 ... 5, 6).raku;	0	((1, 3), (2, 4)).Seq\n(1, 2, 3, 4, 5, 6).Seq\n	
+Welcome to Rakudo™ v2026.08.say (1, 2)>>.^name;\nsay (1, 2)>>.WHAT;\nsay (1, 2).map(*.^name);	0	List\n(List)\n(Int Int)\n	
+Welcome to Rakudo™ v2026.08.say (1, 2, 3) >>+<< (10, 20);	1		Lists on either side of non-dwimmy hyperop of infix:<+> are not of the same length while recursing\nleft: 3 elements, right: 2 elements\n  in block <unit> at example.raku line 1\n\n
+Welcome to Rakudo™ v2026.08.say (1, 2, 3) >>+>> (10, 20);\nsay (1, 2, 3) <<+>> (10, 20);\nsay (1, 2) >>+<< (10, 20);\nsay (1, 2, 3) >>*>> 2;	0	(11 22 13)\n(11 22 13)\n(11 22)\n(2 4 6)\n	
+Welcome to Rakudo™ v2026.08.say (1..3 .elems).raku;\nsay (1 + 2 .Str).^name;\nsay "ab" .uc;	0	1..1\nInt\nAB\n	
+Welcome to Rakudo™ v2026.08.say (1..6).map({ $_ == 2 ff $_ == 4 });\nsay (1..6).map({ $_ == 2 ff $_ == 2 });\nsay (1..6).map({ $_ == 2 fff $_ == 2 });\nsay (1..5).map({ $_ == 2 ^ff^ $_ == 4 });	0	(Nil 1 2 3 Nil Nil)\n(Nil 1 Nil Nil Nil Nil)\n(Nil 1 2 3 4 5)\n(Nil Nil 2 Nil Nil)\n	
+Welcome to Rakudo™ v2026.08.say -1.abs;\nmy $x = -5;\nsay -$x.abs;\nsay 2 ** 3.Str;	0	-1\n-5\n8\n	
+Welcome to Rakudo™ v2026.08.say -2 ** 2;\nsay (-2) ** 2;\nsay 2 ** 3 ** 2;\nsay 2 ** -1;	0	-4\n4\n512\n0.5\n	
+Welcome to Rakudo™ v2026.08.say 0 ^^ 42;\nsay (1 ^^ 42).raku;\nsay (0 ^^ 0).raku;\nsay (1 ^^ 0 ^^ 3).raku;	0	42\nNil\n0\nNil\n	
+Welcome to Rakudo™ v2026.08.say 0 or say "the right side ran";	0	0\n	
+Welcome to Rakudo™ v2026.08.say 0 || 1 && 0;\nsay 1 || 2 // 3;\nsay Nil // 2 || 3;	0	0\n1\n2\n	
+Welcome to Rakudo™ v2026.08.say 0.1 + 0.2 == 0.3;\nsay 0.1e0 + 0.2e0 == 0.3e0;	0	True\nFalse\n	
+Welcome to Rakudo™ v2026.08.say 1 !+ 2;	1		===SORRY!=== Error while compiling example.raku\nCannot negate + because additive operators are not iffy enough\nat example.raku:1\n------> say 1 !<HERE>+ 2;\n    expecting any of:\n        infix\n        infix stopper\n
+Welcome to Rakudo™ v2026.08.say 1 !== 2;\nsay 1 !eqv 2;\nsay 1 !~~ Str;\nsay 1 !> 2 !< 3;	0	True\nTrue\nTrue\nFalse\n	
+Welcome to Rakudo™ v2026.08.say 1 .. 2 .. 3;	1		===SORRY!=== Error while compiling example.raku\nOperators '..' and '..' are non-associative and require parentheses\nat example.raku:1\n------> say 1 .. 2<HERE> .. 3;\n    expecting any of:\n        infix\n        infix stopper\n
+Welcome to Rakudo™ v2026.08.say 1 < 2 < 3;\nsay 1 < 3 > 2;\nsay 5 > 3 > 1 > 0;\nmy $calls = 0;\nsub middle { $calls++; 2 }\nsay 1 < middle() < 3, " after $calls call";	0	True\nTrue\nTrue\nTrue after 1 call\n	
+Welcome to Rakudo™ v2026.08.say 1 ?? 2 !! 3 ?? 4 !! 5;\nsay 0 ?? 2 !! 3 ?? 4 !! 5;\nsay 1 ?? 2 !! 3 + 10;\nsay 0 ?? 2 !! 3 + 10;	0	2\n4\n2\n13\n	
+Welcome to Rakudo™ v2026.08.say 1 R- 3;\nsay 2 Rx "ab";\nsay 1 R- 2 * 3;\nsay [R~] <a b c>;	0	2\nabab\n5\ncba\n	
+Welcome to Rakudo™ v2026.08.say 1 | 2 ^ 3;	1		===SORRY!=== Error while compiling example.raku\nOnly identical operators may be list associative; since '|' and '^' differ, they are non-associative and you need to clarify with parentheses\nat example.raku:1\n------> say 1 | 2<HERE> ^ 3;\n    expecting any of:\n        infix\n        infix stopper\n
+Welcome to Rakudo™ v2026.08.say 1 ~ 2 * 3;\nsay 2 x 2 + 3;\nsay 2 x 2 ~ 3;\nsay 1 + 2 ~ 3;	0	16\n22222\n223\n33\n	
+Welcome to Rakudo™ v2026.08.say 2 == 2 == True;\nsay 1 < 2 < 3 == True;\nsay (2 == 2) == True;	0	False\nFalse\nTrue\n	
+Welcome to Rakudo™ v2026.08.say 3 min 2 + 5;\nsay 1 max 2 ** 2;\nsay "a" ~ 1 min 2;	0	3\n4\n2\n	
+Welcome to Rakudo™ v2026.08.say 7 div 2, " ", -7 div 2, " ", -7 % 2;	0	3 -4 1\n	
+Welcome to Rakudo™ v2026.08.say [**] 2, 3, 2;\nsay [-] 1, 2, 3;\nsay [<] 1, 2, 3;\nsay [<] 1, 3, 2;\nsay [\\+] 1, 2, 3, 4;	0	512\n-4\nTrue\nFalse\n(1 3 6 10)\n	
+Welcome to Rakudo™ v2026.08.say [+] ();\nsay [*] ();\nsay [~] ();\nsay [min] ();\nsay [<] ();\nsay ([/] ()).exception.^name;	0	0\n1\n\nInf\nTrue\nX::NoZeroArgMeaning\n	
+Welcome to Rakudo™ v2026.08.say [..] 1, 2, 3;	1		===SORRY!=== Error while compiling example.raku\nCannot reduce with .. because structural infix operators are diffy and not chaining\nat example.raku:1\n------> say [<HERE>..] 1, 2, 3;\n    expecting any of:\n        argument list\n        infix\n        infix stopper\n        term\n
+Welcome to Rakudo™ v2026.08.say ~1 + 2;\nsay (~1 + 2).^name;\nsay (^3 + 1).raku;\nsay ?2 * 2;	0	3\nInt\n1..^4\n2\n	
+Welcome to Rakudo™ v2026.08.sub risky { fail "no luck" }\nsay (risky() orelse "handled: " ~ .exception.message);	0	handled: no luck\n	

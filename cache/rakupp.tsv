@@ -1,0 +1,44 @@
+Raku++ 4.0.1-239-gc2161341-modified (2026-09-28) arm64-darwinmy $a = True;\n$a ?? $a = 42 !! $a = 43;	1		===SORRY!=== Parse error at line 2: Precedence of = is too loose to use inside ?? !!; please parenthesize\n      2 | $a ?? $a = 42 !! $a = 43;\n  at example.raku:2\n
+Raku++ 4.0.1-239-gc2161341-modified (2026-09-28) arm64-darwinmy $i = 1;\nsay $i + $i++;\n$i = 1;\nsay $i++ + $i;\n$i = 1;\nsay ++$i + ++$i;	0	2\n3\n5\n	
+Raku++ 4.0.1-239-gc2161341-modified (2026-09-28) arm64-darwinmy $l = 42;\nsay ++$l++;	1		===SORRY!=== Parse error at line 2: Operators '++' and '++' are non-associative and require parentheses\n      2 | say ++$l++;\n  at example.raku:2\n
+Raku++ 4.0.1-239-gc2161341-modified (2026-09-28) arm64-darwinmy $name;\nsay "Hello, " ~ $name ~ "!";	0	Hello, !\n	
+Raku++ 4.0.1-239-gc2161341-modified (2026-09-28) arm64-darwinmy $x = 0 || 7;\nmy $y = 0 or 7;\nsay "$x $y";	0	7 0\n	
+Raku++ 4.0.1-239-gc2161341-modified (2026-09-28) arm64-darwinmy $x = 1, 2;\nsay $x;	0	1\n	Useless use of constant integer 2 in sink context (line 1)\n
+Raku++ 4.0.1-239-gc2161341-modified (2026-09-28) arm64-darwinmy $x;\nsay so $x = 42;\nsay $x;	0	True\n42\n	
+Raku++ 4.0.1-239-gc2161341-modified (2026-09-28) arm64-darwinmy @a;\n@a[0] = 1, 2;\nsay @a.raku;\nmy %h;\n%h<k> = 1, 2;\nsay %h.raku;	0	[(1, 2),]\n{:k($(1, 2))}\n	
+Raku++ 4.0.1-239-gc2161341-modified (2026-09-28) arm64-darwinmy @pairs = 1, 3 Z 2, 4;\nsay @pairs.raku;\nmy $first = (1, 3) X (2, 4);\nsay $first.raku;	0	[(1, 2), (3, 4)]\n$(1, 3)\n	
+Raku++ 4.0.1-239-gc2161341-modified (2026-09-28) arm64-darwinmy @r = <b c a> ==> sort();\nsay @r;\n<b c a> ==> sort() ==> my @s;\nsay @s;	0	[b c a]\n[a b c]\n	
+Raku++ 4.0.1-239-gc2161341-modified (2026-09-28) arm64-darwinsay !1 ~~ 2;\nsay not 1 ~~ 2;\nsay (not 1, 42)[1];\nsay (so 0, 1).raku;	0	False\nTrue\n42\n(Bool::False, 1)\n	
+Raku++ 4.0.1-239-gc2161341-modified (2026-09-28) arm64-darwinsay "sum: ", [+] 1, 2, 3, " done";	1		Cannot convert string to number: base-10 number must begin with valid digits or '.' in ' <HERE>done' (indicated by <HERE>)\n  (X::Str::Numeric)\n  in block <unit> at example.raku line 1\n      1 | say "sum: ", [+] 1, 2, 3, " done";\n
+Raku++ 4.0.1-239-gc2161341-modified (2026-09-28) arm64-darwinsay (0 andthen "0 is defined");\nsay (5 andthen $_ * 2 andthen $_ + 1);\nsay (Any andthen 2).raku;\nsay (Any orelse "fallback");	0	0 is defined\n11\nEmpty\nfallback\n	
+Raku++ 4.0.1-239-gc2161341-modified (2026-09-28) arm64-darwinsay (1 + 1 & 2 + 2).raku;\nsay ("a" ~ 1 | 2).raku;\nsay (1 & 2 ^ 3).raku;	0	all(2, 4)\nany("a1", 2)\none(all(1, 2), 3)\n	
+Raku++ 4.0.1-239-gc2161341-modified (2026-09-28) arm64-darwinsay (1 .. 2 + 3).raku;\nsay 1 <=> 2 == Less;\nsay 1 == 3 <=> 2;	0	1..5\nTrue\nTrue\n	
+Raku++ 4.0.1-239-gc2161341-modified (2026-09-28) arm64-darwinsay (1 => 2 => 3).raku;\nsay (1 => 2 => 3).value.^name;\nsay (1 ?? 2 !! 3 => 4).raku;\nsay (1 => 2 ?? 3 !! 4).raku;\nsay (a => 1 + 1).raku;	0	1 => 2 => 3\nPair\n2\n1 => 3\n:a(2)\n	
+Raku++ 4.0.1-239-gc2161341-modified (2026-09-28) arm64-darwinsay (1, 2 Z 3, 4).raku;\nsay (1, 2 ... 5, 6).raku;	0	((1, 3), (2, 4)).Seq\n(1, 2, 3, 4, 5, 6).Seq\n	
+Raku++ 4.0.1-239-gc2161341-modified (2026-09-28) arm64-darwinsay (1, 2)>>.^name;\nsay (1, 2)>>.WHAT;\nsay (1, 2).map(*.^name);	0	(Int Int)\n((Int) (Int))\n(Int Int)\n	
+Raku++ 4.0.1-239-gc2161341-modified (2026-09-28) arm64-darwinsay (1, 2, 3) >>+<< (10, 20);	1		Lists on either side of non-dwimmy hyperop of infix:<+> are not of the same length\nleft: 3 elements, right: 2 elements\n  (X::HyperOp::NonDWIM)\n  in block <unit> at example.raku line 1\n      1 | say (1, 2, 3) >>+<< (10, 20);\n
+Raku++ 4.0.1-239-gc2161341-modified (2026-09-28) arm64-darwinsay (1, 2, 3) >>+>> (10, 20);\nsay (1, 2, 3) <<+>> (10, 20);\nsay (1, 2) >>+<< (10, 20);\nsay (1, 2, 3) >>*>> 2;	0	(11 22 13)\n(11 22 13)\n(11 22)\n(2 4 6)\n	
+Raku++ 4.0.1-239-gc2161341-modified (2026-09-28) arm64-darwinsay (1..3 .elems).raku;\nsay (1 + 2 .Str).^name;\nsay "ab" .uc;	0	1..1\nInt\nAB\n	
+Raku++ 4.0.1-239-gc2161341-modified (2026-09-28) arm64-darwinsay (1..6).map({ $_ == 2 ff $_ == 4 });\nsay (1..6).map({ $_ == 2 ff $_ == 2 });\nsay (1..6).map({ $_ == 2 fff $_ == 2 });\nsay (1..5).map({ $_ == 2 ^ff^ $_ == 4 });	0	(Nil 1 2 3 Nil Nil)\n(Nil 1 Nil Nil Nil Nil)\n(Nil 1 2 3 4 5)\n(Nil Nil 2 Nil Nil)\n	
+Raku++ 4.0.1-239-gc2161341-modified (2026-09-28) arm64-darwinsay -1.abs;\nmy $x = -5;\nsay -$x.abs;\nsay 2 ** 3.Str;	0	-1\n-5\n8\n	
+Raku++ 4.0.1-239-gc2161341-modified (2026-09-28) arm64-darwinsay -2 ** 2;\nsay (-2) ** 2;\nsay 2 ** 3 ** 2;\nsay 2 ** -1;	0	-4\n4\n512\n0.5\n	
+Raku++ 4.0.1-239-gc2161341-modified (2026-09-28) arm64-darwinsay 0 ^^ 42;\nsay (1 ^^ 42).raku;\nsay (0 ^^ 0).raku;\nsay (1 ^^ 0 ^^ 3).raku;	0	42\nNil\n0\nNil\n	
+Raku++ 4.0.1-239-gc2161341-modified (2026-09-28) arm64-darwinsay 0 or say "the right side ran";	0	0\n	
+Raku++ 4.0.1-239-gc2161341-modified (2026-09-28) arm64-darwinsay 0 || 1 && 0;\nsay 1 || 2 // 3;\nsay Nil // 2 || 3;	0	0\n1\n2\n	
+Raku++ 4.0.1-239-gc2161341-modified (2026-09-28) arm64-darwinsay 0.1 + 0.2 == 0.3;\nsay 0.1e0 + 0.2e0 == 0.3e0;	0	True\nFalse\n	
+Raku++ 4.0.1-239-gc2161341-modified (2026-09-28) arm64-darwinsay 1 !+ 2;	1		===SORRY!=== Parse error at line 1: Cannot negate + because additive operators are not iffy enough\n      1 | say 1 !+ 2;\n  at example.raku:1\n
+Raku++ 4.0.1-239-gc2161341-modified (2026-09-28) arm64-darwinsay 1 !== 2;\nsay 1 !eqv 2;\nsay 1 !~~ Str;\nsay 1 !> 2 !< 3;	0	True\nTrue\nTrue\nFalse\n	
+Raku++ 4.0.1-239-gc2161341-modified (2026-09-28) arm64-darwinsay 1 .. 2 .. 3;	1		===SORRY!=== Parse error at line 1: Operators '..' and '..' are non-associative and require parentheses\n      1 | say 1 .. 2 .. 3;\n  at example.raku:1\n
+Raku++ 4.0.1-239-gc2161341-modified (2026-09-28) arm64-darwinsay 1 < 2 < 3;\nsay 1 < 3 > 2;\nsay 5 > 3 > 1 > 0;\nmy $calls = 0;\nsub middle { $calls++; 2 }\nsay 1 < middle() < 3, " after $calls call";	0	True\nTrue\nTrue\nTrue after 1 call\n	
+Raku++ 4.0.1-239-gc2161341-modified (2026-09-28) arm64-darwinsay 1 ?? 2 !! 3 ?? 4 !! 5;\nsay 0 ?? 2 !! 3 ?? 4 !! 5;\nsay 1 ?? 2 !! 3 + 10;\nsay 0 ?? 2 !! 3 + 10;	0	2\n4\n2\n13\n	
+Raku++ 4.0.1-239-gc2161341-modified (2026-09-28) arm64-darwinsay 1 R- 3;\nsay 2 Rx "ab";\nsay 1 R- 2 * 3;\nsay [R~] <a b c>;	0	2\nabab\n5\ncba\n	
+Raku++ 4.0.1-239-gc2161341-modified (2026-09-28) arm64-darwinsay 1 | 2 ^ 3;	1		===SORRY!=== Parse error at line 1: Operators '|' and '^' are non-associative and require parentheses\n      1 | say 1 | 2 ^ 3;\n  at example.raku:1\n
+Raku++ 4.0.1-239-gc2161341-modified (2026-09-28) arm64-darwinsay 1 ~ 2 * 3;\nsay 2 x 2 + 3;\nsay 2 x 2 ~ 3;\nsay 1 + 2 ~ 3;	0	16\n22222\n223\n33\n	
+Raku++ 4.0.1-239-gc2161341-modified (2026-09-28) arm64-darwinsay 2 == 2 == True;\nsay 1 < 2 < 3 == True;\nsay (2 == 2) == True;	0	False\nFalse\nTrue\n	
+Raku++ 4.0.1-239-gc2161341-modified (2026-09-28) arm64-darwinsay 3 min 2 + 5;\nsay 1 max 2 ** 2;\nsay "a" ~ 1 min 2;	0	3\n4\n2\n	
+Raku++ 4.0.1-239-gc2161341-modified (2026-09-28) arm64-darwinsay 7 div 2, " ", -7 div 2, " ", -7 % 2;	0	3 -4 1\n	
+Raku++ 4.0.1-239-gc2161341-modified (2026-09-28) arm64-darwinsay [**] 2, 3, 2;\nsay [-] 1, 2, 3;\nsay [<] 1, 2, 3;\nsay [<] 1, 3, 2;\nsay [\\+] 1, 2, 3, 4;	0	512\n-4\nTrue\nFalse\n(1 3 6 10)\n	
+Raku++ 4.0.1-239-gc2161341-modified (2026-09-28) arm64-darwinsay [+] ();\nsay [*] ();\nsay [~] ();\nsay [min] ();\nsay [<] ();\nsay ([/] ()).exception.^name;	0	0\n1\n\nInf\nTrue\nX::NoZeroArgMeaning\n	
+Raku++ 4.0.1-239-gc2161341-modified (2026-09-28) arm64-darwinsay [..] 1, 2, 3;	1		===SORRY!=== Parse error at line 1: Cannot reduce with .. because structural infix operators are diffy and not chaining\n      1 | say [..] 1, 2, 3;\n  at example.raku:1\n
+Raku++ 4.0.1-239-gc2161341-modified (2026-09-28) arm64-darwinsay ~1 + 2;\nsay (~1 + 2).^name;\nsay (^3 + 1).raku;\nsay ?2 * 2;	0	3\nInt\n1..^4\n2\n	
+Raku++ 4.0.1-239-gc2161341-modified (2026-09-28) arm64-darwinsub risky { fail "no luck" }\nsay (risky() orelse "handled: " ~ .exception.message);	0	handled: no luck\n	
