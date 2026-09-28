@@ -632,7 +632,7 @@ Died with E
 
 An exception can be built and kept like any object. Until it is thrown, its
 `.backtrace` is Nil, its gist is the plain message, and `.resume` refuses it
-with a message that sounds wrong, "Can only resume an exception object".
+with the message "Can only resume an exception object", although it is one.
 `.throw` needs an instance, not the class. `.rethrow` on an object that was
 never thrown throws it with a fresh backtrace, and the handler receives the
 very same object:
@@ -1008,10 +1008,12 @@ X::AdHoc: This exception is not resumable
 tags: bug
 
 A CONTROL also sees `return` (`CX::Return`), `take` (`CX::Take`) and `emit`
-(`CX::Emit`). Rethrowing any of them should let it go on unchanged. In
-Rakudo 2026.08 the construct receives the control exception itself instead
-of the value: the routine returns the `CX::Return` object, and `gather`
-collects `CX::Take` objects.
+(`CX::Emit`). The documentation describes `.rethrow` as throwing the
+exception again, and a rethrown `CX::Next` does go on to the next iteration.
+For these three, in Rakudo 2026.08, the construct receives the control
+exception itself instead of the value: the routine returns the `CX::Return`
+object, and `gather` collects `CX::Take` objects. A CONTROL that does not
+catch the `return` leaves its value alone.
 
 ```raku
 sub five {
@@ -1212,7 +1214,7 @@ control exception without handler
 
 ```
 
-## A bare `succeed` leaves a value that cannot even be printed
+## A bare `succeed` yields an internal null that cannot be printed
 tags: bug
 
 `succeed` leaves the `when` or `given` block early, and its argument becomes
@@ -1234,9 +1236,9 @@ say (do given 5 { when Int { } }).raku;
 Nil
 ```
 
-An empty `when` yields Nil, and a bare `succeed` should too. In Rakudo
-2026.08 it yields an internal null value of the virtual machine instead,
-which has no methods at all, not even the `.gist` that `say` calls:
+An empty `when` yields Nil. A bare `succeed`, in Rakudo 2026.08, yields the
+virtual machine's internal null value, `VMNull`, which is not a Raku object
+and has no methods at all, not even the `.gist` that `say` calls:
 
 ```raku
 my $v = do given 5 { when Int { succeed } };
@@ -1690,8 +1692,9 @@ say $bt.summary.lines.elems;
 ## `.nice(:oneline)` shows the second frame, not the first
 tags: quirk
 
-`.Str` is `.nice`, and `.nice(:oneline)` is meant to give its first line,
-the frame where the exception was thrown. It gives the line after it:
+`.Str` is `.nice`, and the documentation says `.nice(:oneline)` stops after
+the first frame. Here that is `inner`, where the exception was thrown;
+Rakudo 2026.08 gives the line after it:
 
 ```raku
 sub inner { die "bt" }
@@ -1985,10 +1988,11 @@ block LEAVE sees: in sub
 ## In a loop, LEAVE runs before NEXT
 tags: bug
 
-`NEXT` runs when a loop body is about to go round again, and it is meant to
-run before the body's `LEAVE`. Roast expects that order and marks Rakudo as
-failing it. In Rakudo 2026.08 LEAVE comes first. `LAST` runs after the final
-LEAVE, as intended.
+`NEXT` runs when a loop body is about to go round again. The documentation
+says it runs before the body's `LEAVE`, and Roast asserts that order
+(`S04-phasers/next.t`), with a `#?rakudo todo` on the test. In Rakudo 2026.08
+LEAVE comes first. `LAST` runs after the final LEAVE, as the documentation
+says.
 
 ```raku
 for 1..2 {

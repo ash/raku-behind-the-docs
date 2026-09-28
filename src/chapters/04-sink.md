@@ -14,7 +14,8 @@ exception, a `Proc` of a failed command throws `X::Proc::Unsuccessful`, and
 a `Seq` runs to the end.
 
 This chapter is about where sink context reaches, what it does when it gets
-there, and the few places it does not reach although it should. The last
+there, and the few places it does not reach although a closely related form
+does. The last
 corners are about the other side of the question: the value a block, a
 routine or a loop gives back when it *is* used.
 

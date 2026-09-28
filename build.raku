@@ -43,7 +43,7 @@ my %TAGS =
     'undocumented' => 'Not in the docs',
     'unasserted'   => 'Not in Roast',
     'quirk'        => 'Quirk',
-    'bug'          => 'Rakudo bug',
+    'bug'          => 'Rakudo bug?',
     'trap'         => 'Trap',
     '6e'           => '6.e',
 ;

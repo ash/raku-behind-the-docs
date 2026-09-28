@@ -15,7 +15,8 @@ The first half of this chapter is about those rules, and about multi
 dispatch, which chooses between several signatures of one name. The second
 half is about introspection. Code objects, signatures, parameters and
 attributes are ordinary objects that can be asked about themselves, and some
-of their answers are surprising, a few of them wrong.
+of their answers are surprising. A few contradict the documentation or show
+the compiler's internals.
 
 Containers, and how `is rw` and `is raw` keep them, are in [Containers and
 Binding](#ch:containers). The `.&` call form and calls without parentheses
@@ -181,7 +182,7 @@ Unexpected named argument 'loud' passed
 ```
 
 The printed signature also shows the invocant, the first parameter of every
-method; its odd spelling is a [bug of its
+method; its spelling has [a corner of its
 own](#ch:signatures:a-methods-signature-prints-which-does-not-parse-back).
 
 ## A Pair written in a call is a named argument
@@ -1868,11 +1869,11 @@ With `:with-proto` the proto comes first, which is the third element.
 ## `.multi` is 0 on a proto, and a plain sub's `.dispatcher` is an `NQPMu`
 tags: bug
 
-A candidate answers `.multi` with `True`. A proto and a plain sub should
-answer `False`, as the documentation of `Routine` says, but Rakudo 2026.08
-answers the number 0. `.dispatcher` of a plain sub is not a Raku object at
-all but the internal `NQPMu`, whose `.defined` is also 0 and which has no
-`.raku`:
+A candidate answers `.multi` with `True`. The documentation of `Routine`
+declares `.multi` to return a `Bool:D` and shows a proto answering `False`;
+Rakudo 2026.08 answers the number 0 for a proto and for a plain sub.
+`.dispatcher` of a plain sub is not a Raku object at all but the compiler's
+internal `NQPMu`, whose `.defined` is also 0 and which has no `.raku`:
 
 ```raku
 multi f(Int $x) { }
@@ -1894,7 +1895,7 @@ NQPMu
 X::Method::NotFound
 ```
 
-Both zeros are false, so `if &g.multi` works as intended; only code that
+Both zeros are false, so `if &g.multi` works; only code that
 compares with `False` or prints the answer notices.
 
 ## The narrowest candidate wins
@@ -2692,9 +2693,9 @@ t= ""
 t@=
 ```
 
-`.prec` with a key should return that one property, but in Rakudo 2026.08
-the method's own return type is `Hash:D`, and the string it computes fails
-the check:
+Given a key, `.prec` computes that one property, a string, and then fails
+its own declared return type: in Rakudo 2026.08 the method is declared to
+return `Hash:D`, and the call dies with `X::TypeCheck::Return`:
 
 ```raku
 say &infix:<+>.prec<prec>;
@@ -2787,9 +2788,10 @@ where no 'self' is available*.
 ## A method's signature prints `$::`, which does not parse back
 tags: bug
 
-The invocant marker is a colon after the invocant: `method m($self: $x)`. A
-method's `.raku` and `.gist` print it with two colons, `$::`, a spelling the
-documentation writes with one, and the printed signature does not compile:
+The invocant marker is a colon after the invocant: `method m($self: $x)`. In
+Rakudo 2026.08 a method's `.raku` and `.gist` print it with two colons,
+`$::`, where the printed signatures in the documentation of `Routine` have
+one, and the printed signature does not compile:
 
 ```raku
 use MONKEY-SEE-NO-EVAL;
@@ -2901,13 +2903,13 @@ say :(Mu);
 ($)
 ```
 
-## Two spellings in a printed signature do not work as code
+## `Int:D()` prints as `Int:D(Any):D`, which does not compile
 tags: bug
 
-The `.raku` of a value is meant to be code that rebuilds the value. Besides
-the invocant's `$::`, two spellings in a printed signature break that
-promise in Rakudo 2026.08. A definite coercion type `Int:D()` prints as
-`Int:D(Any):D`, which does not compile:
+The documentation says that `.raku` conventionally returns code that `EVAL`
+can use to rebuild the value. Besides the invocant's `$::`, a definite
+coercion type in a printed signature does not work as code in Rakudo
+2026.08: `Int:D()` prints as `Int:D(Any):D`, which does not compile:
 
 ```raku
 use MONKEY-SEE-NO-EVAL;
@@ -2921,8 +2923,12 @@ say $!.^name;
 X::MultipleTypeSmiley
 ```
 
-A computed default prints as `Code.new`, which compiles, but code rebuilt
-from it dies the first time the default is needed:
+## A computed default prints as `Code.new`, which does not rebuild it
+
+Code is never printed, and a default that is not a literal prints as
+`Code.new` ([above](#ch:signatures:a-printed-signature-leaves-out-the-default-type-and-computed-values)).
+That compiles, but a routine rebuilt from it dies the first time the default
+is needed, when `Code.new` throws `X::Cannot::New`:
 
 ```raku
 use MONKEY-SEE-NO-EVAL;
@@ -3162,8 +3168,11 @@ tags: bug unasserted
 `Signature.new` and `Parameter.new` build a signature at run time. Its
 `.raku` prints every type and an explicit return type, and its arity is the
 number of parameters. Such a signature is not `eqv` to the literal it
-imitates, and binding a Capture to it throws an internal error, even for an
-empty signature and an empty Capture:
+imitates. The documentation says that smartmatching a Capture against a
+signature answers whether the Capture can be bound to it. Against a
+signature from `Signature.new`, Rakudo 2026.08 throws instead, even for an
+empty signature and an empty Capture, with a message from the virtual
+machine about `p6invokeunder` and an `MVMCode`:
 
 ```raku
 my $sig = Signature.new(params => (Parameter.new(name => '$x', type => Int),));
@@ -3183,8 +3192,12 @@ X::AdHoc
 X::AdHoc
 ```
 
-The count is not worked out from the parameters either: a slurpy leaves it
-at the arity unless `count => Inf` is passed.
+## `Signature.new` takes the count as given
+
+The count of a signature built with `Signature.new` is not worked out from
+its parameters. As the documentation says, it defaults to the arity, so a
+slurpy leaves it at the arity unless `count => Inf` is passed. An empty
+`Signature.new` prints its return type alone:
 
 ```raku
 say Signature.new(params => (Parameter.new(name => '*@a'),)).count;
@@ -3201,10 +3214,12 @@ Inf
 tags: bug unasserted
 
 `Parameter.new` reads the sigil, the twigil, a `:` for a named parameter,
-the slurpy marks and a trailing `?` or `!` from the name it is given. Two
-names go wrong in Rakudo 2026.08. A name without a sigil is accepted and
-printed twice, and the single-argument slurpy `+@a` dies with an error from
-inside the constructor:
+the slurpy marks and a trailing `?` or `!` from the name it is given. The
+documentation says the name is written as in a signature, and lists the
+`+`, `*` and `**` prefixes among the marks it may carry. In Rakudo 2026.08
+the single-argument slurpy `+@a` dies with an out-of-range `substr` from
+inside the constructor, and a name without a sigil is accepted and printed
+twice:
 
 ```raku
 say Parameter.new(name => '$x').raku;
@@ -3599,10 +3614,10 @@ WhateverCode
 ## A WhateverCode's `.file` is a null string
 tags: bug
 
-Every other piece of code answers `.file` with the name of its source file.
-A WhateverCode answers with a Str object that holds no string at all. It is
+A sub answers `.file` with the name of its source file. In Rakudo 2026.08 a
+WhateverCode answers with a Str object that holds no string at all. It is
 defined, but using it as a string dies with an error from the virtual
-machine:
+machine about a null string:
 
 ```raku
 my $w = * + 1;

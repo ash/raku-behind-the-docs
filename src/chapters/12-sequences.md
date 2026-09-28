@@ -311,14 +311,15 @@ None of these endless sequences is lazy, so without the `.head` each line
 would never return.
 
 ## A `none` junction as the endpoint makes the sequence endless
-tags: bug undocumented
+tags: bug
 
-A `none` junction ought to be smartmatched like any other endpoint:
-`1 ... none(1, 2)` should stop at 3, the first value that is neither 1 nor
-2. In Rakudo 2026.08 it is a lazy sequence that never stops. Before looking
-at the endpoint, the operator tests whether it is infinite by comparing it
-with `Inf`, and the junction answers that test too: "neither 1 nor 2 is
-`Inf`" is true. The same condition in a block works.
+The documentation says that an endpoint other than `*` is smartmatched
+against each generated element, and names junctions among the possible
+endpoints. By that rule `1 ... none(1, 2)` stops at 3, the first value that
+is neither 1 nor 2. In Rakudo 2026.08 it is a lazy sequence that never
+stops. Before looking at the endpoint, the operator tests whether it is
+infinite by comparing it with `Inf`, and the junction answers that test too:
+"neither 1 nor 2 is `Inf`" is true. The same condition in a block stops at 3.
 
 ```raku
 say (1 ... none(1, 2)).is-lazy;
@@ -544,8 +545,10 @@ negative seeds and a ratio above 1, the values fall, but Rakudo 2026.08
 still stops before the first value *above* the endpoint, and the first seed
 already is: `-1, -2, -4 ... -16` is empty, although -16 is on its path. An
 endpoint above every value is never passed, and that sequence never ends.
-A ratio below 1 fails the same way. The arithmetic sequence of the first
-line shows the intended behaviour: stop at the endpoint.
+A ratio below 1 behaves the same way. The arithmetic sequence of the first
+line stops at its endpoint, and so does the geometric sequence with the
+signs flipped: `1, 2, 4 ... 16` gives 1, 2, 4, 8 and 16, like the
+documentation's own example of a geometric sequence.
 
 ```raku
 say (-1, -3 ... -9).raku;
@@ -749,7 +752,7 @@ straight away: a generator that keeps returning `Empty` makes even
 `.head(2)` wait for ever.
 
 ## The endpoint is tested once per call of the generator
-tags: bug undocumented
+tags: bug
 
 The documentation says that the endpoint is smartmatched against each
 generated element. When the generator returns a Slip, Rakudo 2026.08 tests
@@ -773,9 +776,8 @@ say (1, { slip $_ + 1, $_ + 2 } ... * > 6).raku;
 (1, 2, 3, 4, 5, 6, 7).Seq
 ```
 
-The 3 in the first line never ends the sequence, while the 2 in the second
-ends it after a Slip that holds no 2 at all. The intended result of both is
-to stop at the element equal to the endpoint.
+The 3 in the first line never ends the sequence, although the Slip holds a
+3, while the 2 in the second ends it after a Slip that holds no 2 at all.
 
 ## A sequence fails where it is read, which may be outside the `try`
 tags: trap undocumented
@@ -873,10 +875,11 @@ say ('ay' ... 'bb').head(4).raku;
 ## `...^` keeps the end of a string sequence of equal lengths
 tags: bug
 
-Every operator with a final caret should leave out the element that matched
-the endpoint, and for single characters `...^` does. For strings of equal
-length and more than one character, Rakudo 2026.08 ignores the caret: the
-endpoint is always included. The caret at the start still works.
+The documentation says that the variants with a final caret "do not contain
+the final element", and for single characters `...^` leaves it out. For
+strings of equal length and more than one character, Rakudo 2026.08 ignores
+the caret: the endpoint is always included. The caret at the start still
+works.
 
 ```raku
 say ('a' ...^ 'e').raku;
@@ -1033,8 +1036,8 @@ of. At the end of a chain, Rakudo 2026.08 emits the last endpoint whether it
 was reached or not: `1 ... 5 ... 7.5` ends with 7 and then 7.5. It behaves
 as if the last endpoint, like a middle one, started a further segment. In
 the same way `^...^` in a chain drops only the first element and keeps the
-last. The intended results are those of the unchained
-operators: no 7.5, no 30, and no final 1.
+last, where the documentation says that a final caret leaves out the final
+element. The unchained operators give no 7.5, no 30 and no final 1.
 
 ```raku
 say (1 ... 7.5).raku;

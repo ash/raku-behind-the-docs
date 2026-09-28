@@ -582,12 +582,13 @@ and `.reverse`, just below, return a Failure instead.
 ## `reverse` of a fractional range counts down from its end
 tags: bug
 
-`reverse` returns a Seq. For an Int range, or a range of single characters,
-it is the elements in the opposite order, exclusions honoured. For any other
-range, Rakudo 2026.08 starts at the end point (or one below it, when the end
-is excluded) and counts down by one while it stays at or above the start. The
-result is not the reversed list, and can hold values the range never
-yields:
+`reverse` returns a Seq. The documentation says that it holds "all elements
+that the Range represents", reversed. For an Int range, or a range of single
+characters, it is the elements in the opposite order, exclusions honoured.
+For any other range, Rakudo 2026.08 starts at the end point (or one below
+it, when the end is excluded) and counts down by one while it stays at or
+above the start. The result is not the reversed list, and can hold values
+the range never yields:
 
 ```raku
 say (1^..5).reverse.raku;
@@ -608,20 +609,22 @@ say (0.5..^3).reverse.raku;
 (2, 1).Seq
 ```
 
-The documentation describes the intended behaviour: the elements, reversed.
-`.list.reverse` gives that for any finite range. An endless range returns a
-Failure of `X::Cannot::Lazy`, while `-Inf..3` counts down from 3 forever.
+`.list.reverse` gives the elements reversed for any finite range. An endless
+range returns a Failure of `X::Cannot::Lazy`, while `-Inf..3` counts down
+from 3 forever.
 
 ## `first(:end, :kv)` counts its index from the end
-tags: bug undocumented
+tags: bug
 
 `first` with `:end` [searches from the last element
 backwards](#ch:lists:firstend-searches-from-the-end-and-refuses-a-lazy-list).
-With `:k` it returns the position of the match counted from the front, as
-it should, and `:p` pairs that position with the value. With `:kv` a Range
-in Rakudo 2026.08 returns the position counted from the *end* instead, so
-the two adverbs disagree. The same call on an Array gives the intended
-answer.
+The documentation says that the index "is always counted from the beginning
+of the list", and shows `:kv` with `:end` doing so; Roast asserts the same
+for lists and arrays (`S32-list/first-end-kv.t`). On a Range, `:k` returns
+the position counted from the front, and `:p` pairs that position with the
+value. With `:kv` a Range in Rakudo 2026.08 returns the position counted
+from the *end* instead, so the adverbs disagree. The same call on an Array
+gives the position from the front.
 
 ```raku
 my $r = 1..10;
@@ -640,8 +643,8 @@ say @a.first(* %% 3, :end, :kv).raku;
 (8, 9)
 ```
 
-The intended result of the fourth line is `(8, 9)`. Without `:end`, `first`
-on a range agrees with every other list; what it returns when nothing
+The last two results differ only in the invocant. Without `:end`, `first` on
+a range agrees with every other list; what it returns when nothing
 matches is in [Nil, Any and the
 Undefined](#ch:nil-any:first-answers-nil-when-nothing-matches).
 
@@ -1269,8 +1272,8 @@ the endless range's `Nil` is where a lazy list returns a Failure of
 ## After `srand`, the first `pick` from a range differs
 tags: quirk
 
-`srand` should make the following draws repeatable. For `pick` and `roll` on
-a range, as for `rand`, Rakudo 2026.08 replays only from the second time:
+`srand` seeds the draws that follow. For `pick` and `roll` on a range, as
+for `rand`, Rakudo 2026.08 replays them only from the second time:
 the first `pick` that follows an `srand` draws differently from every later
 `pick` after the same seed, whichever line the later call is on.
 

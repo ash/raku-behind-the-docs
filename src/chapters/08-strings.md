@@ -552,10 +552,12 @@ say $y.raku;
 ## `<42>.lines` returns an allomorph whose number is 0
 tags: bug
 
-`lines` is the exception to the previous corner. On an allomorph it returns
-an allomorph of the same type, with the right text and the number 0, so the
-line is `eq "42"` and `== 0` at once. Every other string method returns a plain
-Str, and so should this one (Rakudo 2026.08).
+`lines` is the exception to the previous corner. The documentation describes
+the allomorph's other string methods, `chomp`, `comb`, `lc` and the rest, as
+calling the Str method on the allomorph's Str value, and they return plain
+Strs. On an allomorph, `lines` in Rakudo 2026.08 returns an allomorph of the
+same type, with the text of the line and the number 0, so the line is
+`eq "42"` and `== 0` at once. The same text as a Str gives a Str.
 
 ```raku
 say <42>.lines.raku;
@@ -1032,11 +1034,12 @@ False
 ## `rindex` dies on a position at the end
 tags: bug
 
-`rindex` searches backwards from its position. Given a position at the end of
-the string or beyond, it should search from the end and find the last
-occurrence; for the other search methods a position past the end is no error.
-Instead it throws an untyped exception whose message contradicts itself
-(Rakudo 2026.08). An empty needle is spared:
+`rindex` searches backwards from its position. The documentation says that it
+returns the last position of the needle "not after `$pos`", which for a
+position at the end of the string is the last occurrence; for the other
+search methods a position past the end is no error. Rakudo 2026.08 throws
+instead, an untyped exception whose message calls the offset out of a range
+that contains it. An empty needle is spared:
 
 ```raku
 my $s = "abc";
@@ -1057,11 +1060,12 @@ index start offset (3) out of range (0..3)
 ```
 
 ## A needle list with a position is searched as one string
-tags: bug
+tags: trap
 
-`index` and `rindex` accept a list of needles and search for all of them.
-Adding a starting position breaks that (Rakudo 2026.08). `index` then joins
-the list into one string, with spaces, and searches for that:
+`index` and `rindex` accept a list of needles and search for all of them,
+but the documentation lists no form that takes a list of needles and a
+starting position. Given both, `index` takes the list as a single needle,
+joins it into one string with spaces, and searches for that:
 
 ```raku
 my $s = "abc";
@@ -1075,8 +1079,16 @@ Nil
 0
 ```
 
-The third line finds the text `a b`, the two needles joined. The same call on
-`rindex` does not return at all; it runs until it is killed:
+The third line finds the text `a b`, the two needles joined.
+
+## `rindex` with a needle list and a position never returns
+tags: bug
+
+Without a position, `rindex` searches a list of needles as the
+documentation shows. Given a starting position as well, it neither joins
+the list, as `index` does in the previous corner, nor searches for each
+needle: in Rakudo 2026.08 the call does not return at all, and runs until it
+is killed.
 
 ```raku nocheck
 say "abc".rindex(<a b>, 1);
@@ -1370,11 +1382,12 @@ say "1.2.5 x 2.5".comb(2.5);
 ## `comb` with a string and a limit finds overlapping matches
 tags: bug
 
-`comb("aa")` returns each occurrence of the needle, without overlaps. Given a
-limit, the search moves on by one character after each find instead of by the
-length of the needle, so the matches overlap; a negative limit, which means
-none in the other forms of `comb`, gives all the overlapping ones. `*` keeps
-the normal rule (Rakudo 2026.08).
+The documentation says that `comb` returns "non-overlapping matches limited
+to at most `$limit` matches", and `comb("aa")` returns each occurrence of the
+needle without overlaps. Given a limit, Rakudo 2026.08 moves on by one
+character after each find instead of by the length of the needle, so the
+matches overlap; a negative limit, which means none in the other forms of
+`comb`, gives all the overlapping ones. `*` keeps the matches apart.
 
 ```raku
 say "aaaa".comb("aa");
@@ -1443,9 +1456,10 @@ say "a\nb\nc".lines(2).raku;
 tags: bug
 
 `lines(:count)` returns the number of lines instead of the lines; the
-documentation calls it deprecated. `:!count` should mean an ordinary call.
-Instead it dies with a type error, as though the call had promised an integer
-(Rakudo 2026.08):
+documentation calls it deprecated. `:!count` reads as a request for the
+ordinary call, and it does compute the lines. In Rakudo 2026.08 the call then
+dies: its own return type demands an integer, and the Seq of lines fails that
+check.
 
 ```raku
 say "a\nb\nc".lines(:count);
@@ -1538,9 +1552,9 @@ tags: quirk
 
 A second argument limits the number of pieces, so 2 splits once, 1 returns
 the whole string (as a List, not a Seq) and 0 returns nothing. `:end` keeps
-the last pieces instead of the first. Three combinations misbehave: `:end`
-with 0 returns every piece, `:!end` drops the limit instead of ignoring the
-adverb, and with a list of needles `:end` is ignored.
+the last pieces instead of the first. Three combinations do something else:
+`:end` with 0 returns every piece, `:!end` drops the limit instead of
+ignoring the adverb, and with a list of needles `:end` is ignored.
 
 ```raku
 say "a;b;c;d".split(";", 2).raku;
@@ -1561,12 +1575,14 @@ say "abcabc".split(<b c>, 2, :end).raku;
 ("a", "cabc").Seq
 ```
 
-## A fractional limit kills `split` with a string needle
+## `split` with a string needle dies on a fractional limit
 tags: bug
 
-Other methods convert a limit to an integer, and so does `split` with a
-regex. With a string needle, a limit that is not an Int, even `2.0`, dies
-with a low-level message (Rakudo 2026.08):
+The documentation gives the limit of `split` no type, and other methods
+convert a limit to an integer, as `split` with a regex does. With a string
+needle, a limit that is not an Int, even `2.0`, dies in Rakudo 2026.08 with a
+message from the virtual machine, which names the internal representation
+`P6opaque`:
 
 ```raku
 my $limit = 2.0;
@@ -1602,29 +1618,41 @@ say "abc".split(/b*/).raku;
 ("", "a", "", "c", "").Seq
 ```
 
-## A list of needles splits at the longest, and returns strings
-tags: bug
+## A list of needles splits at the earliest match, then the longest
 
 `split` takes a list of needles, strings or regexes. At each position the
 earliest match wins, and of matches at the same position the longest; `:k`
 gives the index of the needle in the list. An empty list splits nothing and
-returns nothing. The documentation says that `:v` gives Match objects unless
-every needle is a string, but it gives strings in every case (Rakudo
-2026.08).
+returns nothing.
 
 ```raku
 say "a;b,c".split(<; ,>, :k).raku;
 say "aaa".split(("a", "aa"), :v).raku;
-say "1a2bb3".split(['a', /b+/], :v).raku;
-say "1a2bb3".split(['a', /b+/], :v).map(*.^name);
 say "abc".split(()).raku;
 ```
 ```output
 ("a", 0, "b", 1, "c").Seq
 ("", "aa", "", "a", "").Seq
+().Seq
+```
+
+## `:v` gives a string for a regex in a list of needles
+tags: bug
+
+The documentation says that `:v` also returns each delimiter, the Match
+object when the delimiter is a regex, and that each element of a list of
+needles counts as a delimiter according to its type. A regex needle on its
+own does give Match objects, [as shown
+above](#ch:strings:split-with-a-regex-splits-at-empty-matches-too). In a
+list, Rakudo 2026.08 gives a string for every needle, regex or not:
+
+```raku
+say "1a2bb3".split(['a', /b+/], :v).raku;
+say "1a2bb3".split(['a', /b+/], :v).map(*.^name);
+```
+```output
 ("1", "a", "2", "bb", "3").Seq
 (Str Str Str Str Str)
-().Seq
 ```
 
 ## A zero-width regex in a list of needles never returns
@@ -1632,9 +1660,9 @@ tags: bug
 
 A single regex that matches the empty string splits between characters, [as
 shown above](#ch:strings:split-with-a-regex-splits-at-empty-matches-too). Put
-the same regex in a list of needles and it matches at the same place again
-and again, without moving on: the call runs until it is killed (Rakudo
-2026.08). It was meant to split as the single regex does.
+the same regex alone in a list of needles and, in Rakudo 2026.08, it matches
+at the same place again and again, without moving on: the call does not
+return, and runs until it is killed.
 
 ```raku nocheck
 say "abc".split([/<?>/]);
@@ -1667,11 +1695,11 @@ When nothing matches, `subst` returns a Str with the original text.
 tags: bug
 
 An empty string needle matches at position 0, so `subst` puts the
-replacement at the start. With `:g` it matches only between characters,
-never at the start or the end, and an empty string gets no replacement at
-all. The regex `/<?>/`, which also matches the empty string, finds the ends
-too. `:g` was meant to find every place that the single match can (Rakudo
-2026.08).
+replacement at the start. The documentation says that `:g` "tries to match
+as often as possible", but in Rakudo 2026.08 an empty needle with `:g`
+matches only between characters, never at the start or the end: an empty
+string gets a replacement without `:g` and none with it. The regex `/<?>/`,
+which also matches the empty string, finds the ends too.
 
 ```raku
 say "abc".subst("", "-");
@@ -1717,15 +1745,16 @@ Cannot use :ov adverb in Str.subst, got True
 The adverbs are described with `.match` in [Regexes and
 Grammars](#ch:regexes).
 
-## `:as(Str)` breaks `subst` with `:g`, `:nth` or `:x`
+## `subst` with `:as(Str)` dies under `:g`, `:nth` or `:x`
 tags: bug
 
 `:as(Str)` asks a match for strings instead of Match objects. `subst` accepts
 it and, for a single replacement, ignores it. With any adverb that makes
-several matches, `subst` looks for the positions of the matches, the strings
-have none, and it dies, whether the needle is a string or a regex (Rakudo
-2026.08). An adverb that changes nothing in the result was not meant to break
-the call.
+several matches, Rakudo 2026.08 dies, whether the needle is a string or a
+regex, and the message is about a method `from` that the program never
+calls: `subst` asks each match for its position, and a string has none.
+`:ov`, which `subst` cannot honour either, gets a clear refusal
+([above](#ch:strings:subst-passes-nth-and-x-on-and-refuses-ov-and-ex)).
 
 ```raku
 say "abc".subst(/b/, "x", :as(Str));
@@ -1849,15 +1878,15 @@ Int
 "1x3"
 ```
 
-## `subst-mutate` accepts `:ov` and `:ex`, and they garble the text
+## `subst-mutate` accepts `:ov` and `:ex`, which `subst` refuses
 tags: bug unasserted
 
 `subst` refuses `:ov` and `:ex`
-([above](#ch:strings:subst-passes-nth-and-x-on-and-refuses-ov-and-ex));
-`subst-mutate` lets them through. `:ov` then replaces overlapping matches one
-after another in the same text, and `:ex` dies with a message about a
-negative length (Rakudo 2026.08). Both were meant to be refused, as in
-`subst`.
+([above](#ch:strings:subst-passes-nth-and-x-on-and-refuses-ov-and-ex)). In
+Rakudo 2026.08 `subst-mutate`, its in-place form, lets them through. `:ov`
+then replaces overlapping matches one after another in the same text, and
+`:ex` dies with a message about a substring length of -3, a length the
+program never gave.
 
 ```raku
 my $s = "aaa";
@@ -1876,10 +1905,11 @@ Substring length (-3) cannot be negative
 tags: bug
 
 `:c` (`:continue`) starts the search at a position and `:p` (`:pos`) anchors
-it there. A negative position should be refused or find nothing; instead the
-match starts at -1, and its text comes from the other end of the string. A
-bare `:c` is documented to continue from where the last match ended, `$/.to`,
-but it always starts at 1 (Rakudo 2026.08).
+it there. `index` and `substr`, above, refuse a negative position as out of
+range. Given `:c(-1)`, Rakudo 2026.08 starts the match at -1, outside the
+string, and takes its text from the other end. The documentation also says
+that a bare `:c` continues from where the last match ended, `$/.to`; in
+Rakudo 2026.08 it always starts at 1.
 
 ```raku
 say "abc".match(/./, :c(-1)).raku;
@@ -2214,9 +2244,10 @@ X::Encoding::Unknown
 ## `encode` with an undefined encoding never returns
 tags: bug
 
-An undefined encoding name, whether the Str type object or a variable that
-was never set, should be refused like an unknown name. Instead `encode` runs
-until it is killed (Rakudo 2026.08):
+An unknown encoding name is refused with `X::Encoding::Unknown`, as the
+previous corner shows. An undefined one, whether the Str type object or a
+variable that was never set, is not refused: in Rakudo 2026.08 `encode` does
+not return, and runs until it is killed.
 
 ```raku nocheck
 my $encoding;

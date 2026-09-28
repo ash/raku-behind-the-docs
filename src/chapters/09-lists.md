@@ -958,10 +958,10 @@ X::Cannot::Lazy
 tags: bug
 
 `splice(offset, size)` works on a lazy array, since it needs only the
-elements up to `offset + size`. Without a size, or with `*`, it is meant to
-remove everything from the offset on. On a lazy array Rakudo 2026.08 removes
-only the elements computed so far, leaves the lazy rest in place, and
-reports no error:
+elements up to `offset + size`. The documentation says that without a size,
+or with `*`, all the elements from the offset on are deleted. On a lazy array
+Rakudo 2026.08 removes only the elements computed so far, leaves the lazy
+rest in place, and reports no error:
 
 ```raku
 my @a = 1..*;
@@ -1435,7 +1435,7 @@ Unsupported combination of adverbs ('k', 'v') passed to grep on '@l'.
 Unexpected adverb 'zap' passed to grep on '@l'.
 ```
 
-`:!v`, which should mean the default as well, is refused as *Unexpected
+`:!v`, which reads as a request for the default, is refused as *Unexpected
 adverb 'v'*. `first` does not throw for two adverbs; it returns a Failure,
 as it does for a Bool test ([Nil, Any and the
 Undefined](#ch:nil-any:first-answers-nil-when-nothing-matches)).

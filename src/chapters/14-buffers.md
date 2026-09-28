@@ -214,9 +214,11 @@ The `int8` -1 copied into a 16-bit buffer becomes 65535, not 255: the value
 ## `.bytes` of a `Blob[int]` counts one byte per element
 tags: bug unasserted
 
-`.bytes` is meant to be the size of the elements in bytes: their number times
-1, 2, 4 or 8. `Blob[int]` and `Blob[uint]` store 64 bits per element, as the
-hex dump shows, but Rakudo 2026.08 counts one byte for each:
+The documentation says `.bytes` returns the number of bytes used by the
+elements: their number times 1, 2, 4 or 8, and 24 for three elements of a
+`blob64`. `Blob[int]` and `Blob[uint]` store 64 bits per element, as the hex
+dump shows, but Rakudo 2026.08 counts one byte for each, where a `buf64` of
+the same two values counts 16:
 
 ```raku
 say buf8.new(1, 2).bytes;
@@ -293,8 +295,9 @@ X::Multi::NoMatch
 ## `allocate` with an empty pattern never returns
 tags: bug
 
-An empty list has nothing to repeat; it should give n zeros or be refused.
-In Rakudo 2026.08 the call runs until it is killed:
+The documentation says the pattern is repeated until the buffer is full. An
+empty list has nothing to repeat, and in Rakudo 2026.08 the call never
+returns, running until it is killed:
 
 ```raku nocheck
 say Blob.allocate(3, ()).raku;
@@ -873,12 +876,14 @@ Buf.new()
 ## A bad value among several grows the Buf, then throws
 tags: bug
 
-A single bad argument to `push` leaves the buffer as it was and returns a
-Failure. Among several arguments, the bad one throws at once, but only after
-the buffer has grown by one slot for each argument before it and one for
-itself, the latter holding 0. An integer too large for a native integer does
-the same. The intent is that a failed call changes nothing; Rakudo 2026.08
-leaves the extra elements behind:
+A single bad argument to `push` returns a Failure and leaves the buffer as it
+was. Among several arguments, Rakudo 2026.08 throws at the bad one, but only
+after the buffer has grown by one slot for each argument before it and one
+for itself, the latter holding 0, a value no argument asked for. An integer
+too large for a native integer does the same. The one-argument and the
+several-argument forms of the call disagree, and `splice` with a bad element
+in its list ([below](#ch:buffers:splice-removes-inserts-and-pads-past-the-end))
+leaves the buffer as it was:
 
 ```raku
 my $b = Buf.new(7, 7);
@@ -988,12 +993,13 @@ tags: bug
 
 An offset past the end with a nonzero size, a negative offset and a negative
 size are out of range, and `splice` returns a Failure carrying
-`X::OutOfRange`. Its message speaks of `subbuf`, one of them with a stray
-quote at the front. The Failure is meant to leave the buffer as it was, but
-in Rakudo 2026.08 each case changes it: the offset past the end pads the
-buffer up to the offset, a negative offset removes the element that many
-places from the end, as a Perl programmer might expect, and a negative size
-makes the buffer longer, at offset 0 by a leading zero.
+`X::OutOfRange`. Its message names another method, `subbuf`, one of them with
+a stray quote at the front. A bad replacement, above, returns a Failure and
+leaves the buffer alone; these three return a Failure and, in Rakudo 2026.08,
+change the buffer as well. The offset past the end pads the buffer up to the
+offset, a negative offset removes the element that many places from the end,
+as a Perl programmer might expect, and a negative size makes the buffer
+longer, at offset 0 by a leading zero.
 
 ```raku
 my $b = Buf.new(1, 2, 3);
@@ -1016,8 +1022,8 @@ Len element to subbuf out of range. Is: -1, should be in 0..3
 Buf.new(0,1,2,3)
 ```
 
-An infinite list as the replacement is not refused as lazy. The call runs
-until it is killed:
+An infinite list as the replacement is not refused as lazy, and the call
+never returns, running until it is killed:
 
 ```raku nocheck
 my $b = Buf.new(1, 2, 3);
@@ -1166,8 +1172,8 @@ X::Multi::NoMatch
 X::Multi::NoMatch
 ```
 
-A string start followed by an integer length should be refused in the same
-way. In Rakudo 2026.08 it runs until it is killed:
+A string start followed by an integer length is not refused. In Rakudo
+2026.08 the call never returns, running until it is killed:
 
 ```raku nocheck
 say Blob.new(1, 2).subbuf("1", 1).raku;
@@ -1433,11 +1439,12 @@ X::Multi::NoMatch
 ## `~&` and `~|` die on signed buffers of unequal length
 tags: bug
 
-Padding the shorter operand is meant to work for any element type. Between
-two signed buffers of different lengths, `~&` and `~|` die in Rakudo 2026.08
-with an internal error from the virtual machine, and so does `~&` with a
-signed left operand and an unsigned right one of another length. `~^` works,
-buffers of equal length work, and so does an unsigned left operand.
+For unsigned buffers, and for `~^` with any, the shorter operand is padded.
+Between two signed buffers of different lengths, `~&` and `~|` die in Rakudo
+2026.08 with an internal error from the virtual machine, whose message names
+its array type `MVMArray`, and so does `~&` with a signed left operand and an
+unsigned right one of another length. `~^` works, buffers of equal length
+work, and so does an unsigned left operand.
 
 ```raku
 my $long  = Blob[int8].new(-1, -1);
@@ -1621,9 +1628,9 @@ X::AdHoc
 ## `encode` with a number as the encoding never returns
 tags: bug
 
-An encoding that is not a string should be refused like an unknown name.
-Given a number, Rakudo 2026.08 never returns: the call runs until it is
-killed. An undefined encoding does the same ([Strings](#ch:strings:encode-with-an-undefined-encoding-never-returns)),
+An unknown encoding name is refused with `X::Encoding::Unknown`. Given a
+number, Rakudo 2026.08 never returns: the call runs until it is killed. An
+undefined encoding does the same ([Strings](#ch:strings:encode-with-an-undefined-encoding-never-returns)),
 while `decode` takes an undefined name to mean UTF-8
 ([below](#ch:buffers:decode-uses-the-buffers-own-encoding-or-utf-8)).
 
@@ -2205,11 +2212,12 @@ Can only read 1..24 bits from position 0 in buffer '$b', you tried: 25
 ## `read-bits` of zero bits is -1
 tags: bug
 
-Zero bits hold the number 0, and `read-ubits(p, 0)` says so, but `read-bits`
-answers -1. On a wide buffer the two methods are meant to count bits through
-the stored bytes; in Rakudo 2026.08 they take each element as if it were a
-byte, without masking, so 8 bits from position 0 of a `blob16` are the whole
-first element:
+Zero bits hold the number 0, and `read-ubits(p, 0)` says so, but in Rakudo
+2026.08 `read-bits`, its signed counterpart, answers -1. The documentation
+declares both methods on `blob8` and describes the result as the value of
+the given number of bits. On a wide buffer Rakudo 2026.08 takes each element
+as if it were a byte, without masking, so 8 bits from position 0 of a
+`blob16` are the whole first element, a number wider than 8 bits:
 
 ```raku
 my $b = blob8.new(0x12, 0x34);
@@ -2325,10 +2333,12 @@ high half of the second with `B`: 0x0A and 0xB0. The value 8 in four bits is
 ## `write-ubits` clears the bits after the run in its last byte
 tags: bug
 
-Writing a run of bits should leave every other bit alone. When the run ends
-inside a byte, Rakudo 2026.08 does not keep the bits of that byte to the
-right of the run: of those bits, only the first survives, and the rest become
-zeros. A run that ends on a byte boundary is written correctly.
+The documentation describes `write-ubits` as writing a value to the given
+number of bits from the given offset. When the run ends inside a byte, Rakudo
+2026.08 also changes bits outside it: of the bits of that byte to the right
+of the run, only the first survives, and the rest become zeros. The bits to
+the left of the run are kept, and a run that ends on a byte boundary leaves
+every other bit alone.
 
 ```raku
 say buf8.new(0xFF).write-ubits(0, 4, 0).raku;
@@ -2345,7 +2355,8 @@ Buf[uint8].new(240)
 Buf[uint8].new(1,255,3)
 ```
 
-The first three results should be 15, 195 and `(240, 15)`.
+With the bits outside the run kept, the first three results would be 15, 195
+and `(240, 15)`.
 
 ## `pack` and `unpack` need `use experimental :pack`
 

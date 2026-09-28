@@ -70,7 +70,7 @@ Some corners carry a tag beside their heading:
 
 - **Trap** marks a behaviour that is by design but regularly surprises people who write Raku.
 - **Quirk** marks a Rakudo behaviour that is surprising and probably not intended, but harmless.
-- **Rakudo bug** marks a behaviour that contradicts Rakudo's own documentation or intent. It is described so that you recognise it, not so that you rely on it.
+- **Rakudo bug?** marks a behaviour that looks unintended: it contradicts Rakudo's own documentation, hangs, leaks an internal error, or disagrees with a closely related form. The corner says which. Whether it is a bug is for Rakudo's developers to decide; it is described so that you recognise it, not so that you rely on it.
 - **Not in the docs** marks a behaviour the official documentation does not describe.
 - **Not in Roast** marks a behaviour the language's test suite does not assert, so another implementation, or a later Rakudo, may do something else.
 

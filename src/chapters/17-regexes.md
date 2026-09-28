@@ -898,13 +898,14 @@ False
 The last line shows the way to search the text of a list: stringify it
 first.
 
-## An undefined topic gives Nil and a warning, not False
-tags: bug
+## An undefined topic is matched as the empty string, with a warning
+tags: trap
 
-Matching a regex against a type object or Nil should answer False quietly, as
-a failed match of an undefined value. Instead the value is taken for the
-empty string, with a warning, and the regex runs against that, so `/ b /`
-fails with Nil (Rakudo 2026.08):
+A regex smartmatched against a topic that is not a list or a hash
+interprets it as a Str, as the documentation of `Regex.ACCEPTS` says. An
+undefined topic, a type object or Nil, is no exception: it becomes the empty
+string, with the usual warning, and the regex runs against that. So
+`/ b /` fails with Nil rather than a quiet False:
 
 ```raku
 my Str $s;
@@ -1151,10 +1152,11 @@ say $s.match(/a/, :x(2.7)).elems;
 tags: bug
 
 A count that is not a number or a Range, a numeric string included, makes
-`.match` return a Failure of type `X::Str::Match::x`, whose `.got` holds the
-value, and sets `$/` to Nil. NaN dies at once. An undefined count should mean
-no `:x` at all, as `:nth(Nil)` means no `:nth`; instead it dies with an arity
-error that names no argument (Rakudo 2026.08).
+`.match` return a Failure of type `X::Str::Match::x`, as the documentation
+says. Its `.got` holds the value, and `$/` is set to Nil. NaN dies at once.
+Nil is neither a number nor a Range, so by the documentation it too gives a
+Failure, and `:nth(Nil)` means no `:nth` at all. In Rakudo 2026.08 `:x(Nil)`
+dies instead, with an arity error about a call made inside `.match`.
 
 ```raku
 my $r = "aaaa".match(/a/, :x("2"));
@@ -1238,9 +1240,10 @@ Attempt to fetch match #1 after #3
 tags: bug
 
 `:x` on top of a list or Range of `:nth` numbers checks that exactly that
-many of them exist and returns them. With a single `:nth` number it should
-return that one match, in a List of one; instead it returns an empty List
-although the match exists (Rakudo 2026.08).
+many of them exist and returns them; a list of one number, `:nth((2,))`,
+with `:x(1)` returns that one match. With a single `:nth` number, Rakudo
+2026.08 returns an empty List, although the match exists and the
+documentation describes `:x` as the number of matches to return:
 
 ```raku
 my $s = "abcd";
@@ -1263,7 +1266,7 @@ tags: quirk
 requires the match to start exactly there. A position at the end of the
 string is allowed, for a pattern that can match there; past the end nothing
 matches. Given both, `:p` wins, and both combine with `:g`. A negative
-position is a bug of its own ([Strings](#ch:strings:match-with-a-negative-c-matches-before-the-start)).
+position has a corner of its own ([Strings](#ch:strings:match-with-a-negative-c-matches-before-the-start)).
 Given Nil, the two trade places: `:c(Nil)` anchors at 0, and `:p(Nil)` scans
 as if it were absent.
 
@@ -1446,10 +1449,10 @@ tags: bug
 
 `index`, `rindex`, `indices`, `starts-with` and `ends-with` have no form that
 takes a regex, and refuse one with `X::Multi::NoMatch`. `contains` accepts a
-regex ([Strings](#ch:strings:contains-pos-cannot-match-at-the-end)). `substr`
-should refuse a regex just as clearly, and point to `subst`; instead it takes
-the regex for code that computes a position, calls it with a number, and dies
-with a message about cursors (Rakudo 2026.08).
+regex ([Strings](#ch:strings:contains-pos-cannot-match-at-the-end)). In
+Rakudo 2026.08 `substr` takes the regex for code that computes a position,
+calls it with a number, and dies with a message that names `!cursor_start`,
+a private method of the regex engine:
 
 ```raku
 for "index", "starts-with", "ends-with" -> $method {

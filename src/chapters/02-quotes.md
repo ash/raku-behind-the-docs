@@ -1195,12 +1195,12 @@ IntStr.new(42, "42\n")
 ## Braces inside `qx{…}` run a command of their own
 tags: bug
 
-With brace delimiters, the inner braces of a `qx` should be text, as nested
-delimiters are in every other quoting form, `qq{…}` included. Rakudo 2026.08
-instead runs the
-text between the inner braces as a separate shell command first, and puts its
-output, trailing newline and all, in their place. With other delimiters the
-braces are left alone:
+The documentation says that delimiters nest and that `qx` does not
+interpolate; in every other quoting form, `qq{…}` included, nested braces are
+text. With brace delimiters, Rakudo 2026.08 runs the text between the inner
+braces of a `qx` as a separate shell command first, and puts its output,
+trailing newline and all, in their place. With other delimiters the braces
+are left alone, so the same command gives two different results:
 
 ```raku local
 say qx[echo '{echo inner}'].raku;

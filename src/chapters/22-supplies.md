@@ -796,9 +796,11 @@ react returned
 tags: bug
 
 A `LAST` phaser in a `whenever` runs when its source finishes, and there
-it can `emit` like the rest of the block. When `last` is what runs it, the
-phaser is no longer inside the supply: `emit` dies with "emit without supply
-or react", and the supply quits.
+it can `emit` like the rest of the block, as Roast asserts in
+`S17-supply/syntax.t`. When `last` is what runs it, in Rakudo 2026.08 the
+same phaser no longer runs inside the supply: `emit` dies with "emit
+without supply or react", although the code sits in a `supply` block, and
+the supply quits.
 
 ```raku
 sub numbers($stop) {
@@ -827,8 +829,7 @@ quit: emit without supply or react
 
 A tap without a quit handler hears nothing at all: neither the quit nor a
 done arrives, and no exception is thrown. Under `react` the exception ends
-the program. Rakudo 2026.08 behaves this way; a `LAST` should see the same
-supply whichever way its `whenever` ended.
+the program.
 
 ## A supply block is done when its body and every whenever are done
 
@@ -1165,11 +1166,11 @@ tap returned
 ## An exception in `.map` becomes a quit, and later values still arrive
 tags: bug
 
-`.map` turns an exception in its code into a quit. After a quit nothing
-should follow. In Rakudo 2026.08, when the source is
-synchronous, as `from-list` is, it goes on producing: the values after the
-failing one are still mapped and delivered, and the done arrives after the
-quit. `.grep` does the same.
+`.map` turns an exception in its code into a quit. Over a live source,
+nothing follows that quit, and `.do` or a `supply` block stop at theirs.
+In Rakudo 2026.08, when the source of `.map` is synchronous, as `from-list`
+is, it goes on producing: the values after the failing one are still mapped
+and delivered, and the done arrives after the quit. `.grep` does the same.
 
 ```raku
 Supply.from-list(1, 2, 3, 4)
@@ -1184,8 +1185,8 @@ got 40
 done
 ```
 
-A live source is closed properly, and `.do` or a `supply` block stop at the
-quit as they should:
+The live source is closed at the quit, and `.do` over the same synchronous
+source stops there:
 
 ```raku
 my $sup = Supplier.new;
@@ -1208,11 +1209,15 @@ do quit: cannot do 2
 ## After a leaking quit, `.list` and `await` lose the exception
 tags: bug
 
-The events that follow a quit from `.map` (previous corner) confuse the
-consumers that turn a supply into a value. The late done completes a `.list`
-normally, so the list ends before the failing value and no exception is
-thrown. `await` returns the last value it saw, or `Any` when there was
-none, and records no exception. `.wait` does throw, but the wrong exception:
+The events that follow a quit from `.map` (previous corner) also reach the
+consumers that turn a supply into a value. The Supply documentation says
+that `.list` throws the quit's exception when the list reaches that point,
+and that `.wait` throws the exception passed to `quit`. In Rakudo 2026.08
+the late done completes a `.list` normally, so the list ends before the
+failing value and no exception is thrown. `await` returns the last value it
+saw, or `Any` when there was none, and records no exception. `.wait` does
+throw, but a type check failure from inside Rakudo rather than the
+exception of the quit:
 
 ```raku
 my &risky = { die "cannot map $_" if $_ == 2; $_ * 10 };
@@ -1233,7 +1238,7 @@ Type check failed in binding; expected Exception but got Any (Any)
 ```
 
 `$!` is `Any` because each `try` succeeded. A `supply` block or an
-`on-demand` supply that dies is awaited correctly: `await` throws its
+`on-demand` supply that dies is awaited as documented: `await` throws its
 exception.
 
 ## `grep` smartmatches, and `first` is `grep` then `head`
@@ -1442,8 +1447,9 @@ tags: bug
 With `:seconds`, a batch collects the values that fall in one slice of the
 wall clock, and it is emitted when a value arrives in a later slice, or at
 done. docs.raku.org adds that `:emit-timed` runs a timer that emits the
-waiting batch at the end of each slice. In Rakudo 2026.08 a batch with
-`:emit-timed` emits nothing at all, not even the done:
+waiting batch at the end of each slice, and that the remaining values come
+in a final batch at done. In Rakudo 2026.08 a batch with `:emit-timed`
+emits nothing at all, not even the done:
 
 ```raku local
 for False, True -> $timed {
@@ -1469,12 +1475,12 @@ Without `:emit-timed`, the batch `(1, 2)` waited until the value 3 arrived
 in a new slice.
 
 ## `elems($seconds)` never reports the final count
-tags: bug
+tags: quirk
 
 `.elems` emits the running count after every value. Given a number of
-seconds, it is meant to emit the count at most once in each such interval,
-and the final count at done. Rakudo 2026.08 never emits the final count, so
-a source that finishes within one interval reports nothing:
+seconds, it emits the count at most once in each such interval. Nothing is
+emitted at the done, so a count reached within the last interval is never
+reported, and a source that finishes within one interval reports nothing:
 
 ```raku
 say Supply.from-list(<a b c>).elems.list;
@@ -1485,8 +1491,13 @@ say Supply.from-list(<a b c>).elems(10).list;
 ()
 ```
 
-An interval below one second is not usable either: the first value makes
-`.elems` divide by zero.
+## `elems` with an interval below one second divides by zero
+tags: bug
+
+The documentation describes the argument of `.elems` as an interval in
+seconds, and `batch` takes its `:seconds` to the millisecond. In Rakudo
+2026.08 an interval below one second makes the first value die with
+`X::Numeric::DivideByZero`, a division the caller never wrote.
 
 ```raku
 try say Supply.from-list(1, 2).elems(0.5).list;
@@ -2088,10 +2099,13 @@ after the done: [1, 2, 3]
 tags: bug
 
 `.stable($seconds)` passes a value on only when no newer value follows
-within `$seconds`; a newer value replaces the waiting one. The done is
-passed on at once, and a value still waiting then is emitted after it,
-which breaks the rule that nothing follows a done. A `react` or a `.list`
-has stopped listening by then and loses the value.
+within `$seconds`; a newer value replaces the waiting one. In Rakudo
+2026.08 the done is passed on at once, and a value still waiting then is
+emitted after it. The other methods that hold values back for a time,
+[`delayed`](#ch:supplies:delayed-shifts-every-event-done-included) and
+[`throttle`](#ch:supplies:throttle-lets-a-number-of-values-through-per-interval),
+deliver what they hold before the done. A `react` or a `.list` has stopped
+listening by the time the late value comes, and loses it.
 
 ```raku local
 my $sup = Supplier.new;
@@ -2113,8 +2127,8 @@ say Supply.from-list(1, 2, 3).stable(0).list;
 (1 2 3)
 ```
 
-A time of zero passes every value through. Even `.act`, which should drop
-events after a done, delivers the late value in Rakudo 2026.08.
+A time of zero passes every value through. A tap made with `.act` receives
+the late value too.
 
 ## `throttle` lets a number of values through per interval
 

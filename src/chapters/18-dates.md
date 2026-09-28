@@ -909,11 +909,13 @@ tags: bug
 A range decides both membership and where its iteration stops with `cmp`,
 and `cmp` compares Dates [as
 text](#ch:dates:dates-compare-by-day-but-cmp-and-sort-compare-their-text).
-In Rakudo 2026.08 a string therefore matches a Date range whenever it sorts
-between the endpoints, whatever else it says, and a string is accepted as an
-endpoint. A formatter on the start breaks the range: below, the days print
-as their day numbers, and the iteration ends as soon as `"3"` sorts after
-`"2019-05-09"`.
+A string therefore matches a Date range whenever it sorts between the
+endpoints, whatever else it says, and a string is accepted as an endpoint.
+A formatter on the start goes further. The Date documentation offers
+`$date .. $date.last-date-in-month` as the remaining dates of a month, yet
+in Rakudo 2026.08 a formatter changes where such a range stops: below, the
+days print as their day numbers, and the iteration ends as soon as `"3"`
+sorts after `"2019-05-09"`, so a range of nine days has two elements.
 
 ```raku
 my $r = Date.new("2019-05-01") .. Date.new("2019-05-05");
@@ -930,8 +932,9 @@ True
 2
 ```
 
-The intended range holds the nine days whatever they look like. Build a
-range from Dates without formatters, and format the days when printing them.
+`<`, `<=>` and subtraction still count the same Dates by day; only the
+comparison by text stops early. Build a range from Dates without
+formatters, and format the days when printing them.
 
 ## `later` and `earlier` move by one unit; a month clips the day
 
@@ -1303,8 +1306,9 @@ tags: bug
 A full timestamp with month 13 throws `X::Temporal::OutOfRange`, as
 `Date.new` does, and so does a date-only string with day 32, although its
 `.got` is the string that was read rather than a number. A date-only string
-with month 13 is the exception: Rakudo 2026.08 dies with an `X::AdHoc` about
-unboxing, where the intended error is the same `X::Temporal::OutOfRange`.
+with month 13 is the exception: Rakudo 2026.08 dies with an `X::AdHoc` whose
+message is about unboxing a type object, an internal step, where the two
+neighbouring forms name the field that is out of range.
 
 ```raku
 try DateTime.new("2012-13-22T07:02:00Z");
@@ -1544,10 +1548,13 @@ DateTime.new(2000,1,1,0,0,0,:timezone(-30))
 ## Rounding the second can print one that does not exist, or die
 tags: bug
 
-The six decimals are rounded half up, and two cases go wrong in Rakudo
-2026.08: a second just below 60 prints as `:60.000000`, a leap second that is
-not there, and a second from 0.9999995 up to 1 makes `.Str` die with a
-message about a negative repeat count.
+The six decimals are rounded half up, and in Rakudo 2026.08 two ranges of
+seconds do not round like the rest. A second just below 60 prints as `:60.000000`,
+a leap second that is not there, and one that `DateTime.new` refuses at that
+time ([a second of
+60](#ch:dates:a-second-of-60-is-accepted-only-at-2359-utc-on-a-leap-second-day)).
+A second from 0.9999995 up to 1 makes `.Str` die on a value the constructor
+accepted, with a message about a negative repeat count.
 
 ```raku
 say DateTime.new(:2000year, :second(59.9999994));
@@ -1564,19 +1571,21 @@ say $!.message;
 Repeat count (-1) cannot be negative
 ```
 
-Rounded correctly, the two would read `00:01:00.000000` and
-`00:00:01.000000`, as `10.9999996` becomes `11.000000` on the third line.
+Carried as `10.9999996` is carried to `11.000000` on the third line, the
+two would read `00:01:00.000000` and `00:00:01.000000`.
 
 ## A DateTime's identity is its printed text
 tags: bug
 
 A DateTime is a value type, and its identity, which `===`, `unique` and sets
-use, is made from its `.Str`. Two DateTimes for the same moment in different
-zones are therefore not `===`, although they are `==` and `eqv`. Worse, the
-text is the formatted one: in Rakudo 2026.08, DateTimes whose formatter
-prints the same text are `===` whatever moments they hold, and `unique`
-keeps one of them. A formatter is meant to change how a value looks, not
-which value it is.
+use, is made from its `.Str`. The documentation of `===` says that for value
+types it behaves like `eqv`. In Rakudo 2026.08 the two part ways: two
+DateTimes for the same moment in different zones are `==` and `eqv` but not
+`===`. The text is also the formatted one, so DateTimes whose formatter
+prints the same text are `===` whatever moments they hold, although they are
+not `==`, and `unique` keeps one of them. A Date takes its identity from
+its day instead, whatever its formatter
+([above](#ch:dates:a-dates-identity-is-its-day-a-formatter-does-not-count-a-subclass-does)).
 
 ```raku
 my $utc = DateTime.new("1971-10-28T10:45:00Z");
@@ -1602,9 +1611,10 @@ tags: bug
 `==`, `<`, `<=>`, `before`, `after` and smartmatching compare moments, so the
 zone does not matter. `cmp` and `leg` compare the texts instead, and so do
 `sort`, `min` and `max`, which use `cmp` unless told otherwise. The
-documentation says that `cmp` compares the instants. In Rakudo 2026.08 three
-moments in three zones sort in exactly the wrong order below, and `min`
-picks the latest.
+documentation says that `cmp` on two DateTimes compares the equivalent
+instants. In Rakudo 2026.08 it does not: below, three moments in three
+zones sort in the reverse of their order in time, and `min` picks the
+latest.
 
 ```raku
 my @times = DateTime.new("2020-01-01T08:00:00+05:00"),

@@ -1,7 +1,7 @@
 ---
 title: Numbers
 part: Nothing and numbers
-summary: Four kinds of real number, Int, Rat, FatRat and Num, each with its own rules for combining, printing, comparing, rounding and failing, and a handful of places where Rakudo gets its own rules wrong.
+summary: Four kinds of real number, Int, Rat, FatRat and Num, each with its own rules for combining, printing, comparing, rounding and failing, and a handful of results that look unintended.
 ---
 
 Raku has four types of real number, and which one a computation produces is
@@ -681,14 +681,16 @@ A Num divided by zero is a Failure, not the infinity that IEEE 754 would
 give. Native integers, [further down](#ch:numbers:native-integers-wrap-around-and-a-64-bit-one-refuses-a-big-int),
 have their own behaviour.
 
-## `mod` with a fractional divisor gives an impossible remainder
+## `7 mod 2.5` is -0.5
 tags: bug
 
-`mod` and `div` are meant for integers, and the documentation declares `mod`
-for Ints only. Given a Rat divisor, Rakudo 2026.08 truncates it to an Int for
-the quotient but uses the full value to compute the remainder. `7 mod 2.5` is
-then `7 - (7 div 2) * 2.5`, which is -0.5: a remainder of the wrong sign, and
-not what `%` gives. A divisor below 1 truncates to zero.
+The documentation declares `mod` and `div` for Ints only, and gives `mod` the
+signature `(Int:D $a, Int:D $b --> Int:D)`. Rakudo 2026.08 accepts a Rat
+divisor all the same, truncates it to an Int for the quotient, and uses the
+full value to compute the remainder. `7 mod 2.5` is then
+`7 - (7 div 2) * 2.5`, which is -0.5: a Rat, where the signature promises an
+Int, with the opposite sign to the divisor, and not what `%` gives. A divisor
+below 1 truncates to zero.
 
 ```raku
 say 7 div 2.5;
@@ -805,7 +807,9 @@ tags: bug
 IEEE 754 says that infinity to a negative power is zero, and Rakudo agrees
 that `1 / Inf` is `0e0`. The power operator counts the zero as an underflow
 from a non-zero base, though, and Rakudo 2026.08 returns a Failure for any
-negative power of Inf. The intended result is `0e0`.
+negative power of Inf. The same operator gives a plain zero for the mirror
+case, a fraction raised to Inf: `0.9 ** Inf` is 0, as shown
+[above](#ch:numbers:stays-exact-with-an-int-exponent).
 
 ```raku
 say (1 / Inf).raku;
@@ -820,14 +824,15 @@ X::Numeric::Underflow
 X::Numeric::Underflow
 ```
 
-## A negative base to a negative power builds a broken Rat
+## A negative base to a negative power puts the sign on the denominator
 tags: bug
 
-A Rat keeps its sign on the numerator, and every comparison relies on that.
-`(-2) ** -3` in Rakudo 2026.08 produces a Rat whose sign is on the
-denominator instead. It is not equal to -0.125, it is not below zero, and it
-prints as a wrong decimal. Any arithmetic on it normalises it again. The
-intended result is `<-1/8>`.
+The documentation of `Rational` says that since 6.d a Rat is normalised when
+it is created, and that a normalised Rat has a positive denominator; the sign
+lives on the numerator, and comparisons rely on that. `(-2) ** -3` in Rakudo
+2026.08 produces a Rat whose sign is on the denominator instead. It is not
+equal to -0.125, it is not below zero, and it prints as -1.875. Any
+arithmetic on it normalises it again, to `<-1/8>`.
 
 ```raku
 my $x = (-2) ** -3;
@@ -1154,11 +1159,12 @@ say ([+] 1..3, 4).raku;
 ## `[lcm] ()` dies of an ambiguous call
 tags: bug undocumented
 
-Every other numeric reduction over nothing either answers an identity or
-returns a Failure of `X::NoZeroArgMeaning`, as `[gcd] ()` does. `lcm` has
-two candidates that accept no arguments, and Rakudo 2026.08 cannot choose
-between them. The intended answer is one of the other two outcomes, most
-naturally 1, the identity of `lcm`.
+The documentation says that, in general, an infix operator can be reduced
+over no elements without an error. Every other numeric reduction over nothing
+either answers an identity or returns a Failure of `X::NoZeroArgMeaning`, as
+`[gcd] ()` does. `lcm` has two candidates that accept no arguments, and
+Rakudo 2026.08 cannot choose between them: the call dies, with a message that
+points into Rakudo's own setting.
 
 ```raku
 say [gcd] 12, 18;
@@ -1252,11 +1258,11 @@ large for a native integer dies with `X::AdHoc`.
 tags: bug
 
 `5 +< -1` shifts right, and `5 +> -1` shifts left: a negative count reverses
-the direction. For an Int that fits in 64 bits, Rakudo 2026.08 takes a
-negative count for `+<` modulo 64, so `+< -64` shifts nothing and `+< -65`
-shifts right by one place. A right shift by the same positive amount is
-correct, and so is any shift of a larger Int. The intended result of
-`1024 +< -64` and `1024 +< -65` is 0.
+the direction, and Roast (`S03-operators/numeric-shift.t`) asserts that
+`$a +< -$b` equals `$a +> $b`. For an Int that fits in 64 bits, Rakudo
+2026.08 takes a negative count for `+<` modulo 64, so `+< -64` shifts nothing
+and `+< -65` shifts right by one place. A right shift by the same positive
+amount gives 0, and a larger Int shifts as far as the count says.
 
 ```raku
 say 5 +< -1;
@@ -1312,13 +1318,14 @@ Rats: `NaN.Rat` is `<0/0>` and `Inf.Rat` is `<1/0>`.
 ## `narrow` makes an Int of any Num close to one, however small
 tags: bug
 
-`narrow` returns a number in the narrowest type that holds it without loss:
-an Int for a whole Rat or Num, the value unchanged otherwise. For a Num,
-Rakudo decides "whole" with the approximate comparison `=~=`, which keeps
+The documentation says that `narrow` converts a number to the narrowest type
+that can hold it "without loss of precision": an Int for a whole Rat or Num,
+the value unchanged otherwise. For a Num, Rakudo 2026.08 decides "whole" with
+the approximate comparison `=~=`, which keeps
 `((0.1e0 + 0.2e0) * 10).narrow` from being a Num. But `=~=` compares
 absolutely when one side is zero, so every Num below 1e-15 is taken for 0,
-and a value near a large integer is taken for that integer. The intended
-rule, in the documentation's words, is no "loss of precision".
+and a value near a large integer is taken for that integer. `1e-300.narrow`
+is then 0, which keeps nothing of the value.
 
 ```raku
 say (4/2).narrow.raku;
@@ -1462,13 +1469,14 @@ say (-1).polymod(10).exception.message;
 invocant to polymod out of range. Is: -1, should be in 0..^Inf
 ```
 
-## `polymod` of an Int by a fraction goes wrong
+## An Int's `polymod` by a fraction gives negative remainders
 tags: bug
 
-For an Int, `polymod` uses `mod` and `div`, and so inherits their
-[fractional-divisor bug](#ch:numbers:mod-with-a-fractional-divisor-gives-an-impossible-remainder):
-the remainders come out negative. A Rat or Num with the same value uses `%`
-and gets the right answer, which is what was intended for the Int too.
+For an Int, `polymod` uses `mod` and `div`, and so shares their
+[handling of a fractional divisor](#ch:numbers:7-mod-25-is-05): the remainders
+come out negative. A Rat or Num with the same value uses `%`, and in Rakudo
+2026.08 the same division gives a different answer depending on whether the
+invocant is written `10` or `10.0`.
 
 ```raku
 say 10.polymod(2.5);
@@ -1634,9 +1642,9 @@ at example.raku:1
 tags: quirk
 
 `srand($seed)` seeds the generator behind `rand`, `pick` and `roll`, and
-returns the seed. Seeding again with the same value should replay the same
-numbers. In Rakudo 2026.08 it does so only once the code in between has run
-before: the first pass through a stretch of code after `srand` draws other
+returns the seed. In Rakudo 2026.08, seeding again with the same value
+replays the same numbers only once the code in between has run before: the
+first pass through a stretch of code after `srand` draws other
 numbers than every later pass after the same `srand`. The numbers are still
 the same from one run of the program to the next.
 

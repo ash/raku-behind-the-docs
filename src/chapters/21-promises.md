@@ -450,15 +450,17 @@ X::AdHoc: at once
 On a resolved promise, code that dies throws straight to the caller of
 `.then`.
 
-## A dying synchronous `then` makes `keep` throw a wrong error
+## A dying synchronous `then` makes `keep` throw an unrelated error
 tags: bug
 
-When the code of a synchronous `then` dies while the promise is being
-kept, the new promise should be broken with that exception. In Rakudo
-2026.08 the `keep` call itself throws an unrelated "Too few positionals"
-error. The original promise is kept all the same, the `then` promise stays
-Planned for ever, and the synchronous `then` blocks registered after the
-dying one never run.
+Code that dies in an ordinary `then` breaks the new promise, and on a
+promise that is resolved already a synchronous `then` throws the code's own
+exception. When the code of a synchronous `then` dies while the promise is
+being kept, Rakudo 2026.08 does neither: the `keep` call itself throws "Too
+few positionals", a message that does not describe the call, since
+`keep(1)` passes one argument. The original promise is kept all the same,
+the `then` promise stays Planned, so an `await` on it never returns, and
+the synchronous `then` blocks registered after the dying one never run.
 
 ```raku local
 my $p = Promise.new;
@@ -1024,9 +1026,10 @@ X::Channel::ReceiveOnClosed+{X::Await::Died}
 tags: bug
 
 A Nil sent into a channel is a value like any other, and `.receive`
-returns it. `await` should too. In Rakudo 2026.08 it consumes the Nil and
-goes on waiting as though nothing had been sent: with a later value it
-returns that one instead, and with none it never returns.
+returns it. The Channel documentation says that `await` calls `.receive`.
+In Rakudo 2026.08 `await` consumes the Nil instead and goes on waiting as
+though nothing had been sent: with a later value it returns that one, and
+with none it never returns.
 
 ```raku local
 my $c = Channel.new;
@@ -1095,15 +1098,12 @@ Use of uninitialized value of type Any in numeric context
 ```
 
 ## `sleep-timer` returns what it did not sleep; `sleep-until` a Bool
-tags: bug
 
 `sleep-timer` sleeps like `sleep` and returns a `Duration`: the part of the
 time it did not sleep, normally zero. `sleep-until` takes an `Instant` or a
 `DateTime` and returns `True` once that time has come, or `False` at once
 when it has passed already, which is the case for `now`. A plain number is
-refused. `sleep NaN` returns at once, and `sleep-timer NaN` should too. In
-Rakudo 2026.08 it fails its own return type check instead, because it
-cannot make a Duration out of NaN.
+refused.
 
 ```raku local
 say (sleep-timer 0.1).raku;
@@ -1114,8 +1114,6 @@ say (sleep-until now).raku;
 say (sleep-until DateTime.now.later(seconds => 0.1)).raku;
 try sleep-until 5;
 say $!.^name;
-try sleep-timer NaN;
-say $!.^name;
 ```
 ```output
 Duration.new(0.0)
@@ -1125,7 +1123,27 @@ Bool::False
 Bool::False
 Bool::True
 X::Cannot::New
+```
+
+## `sleep-timer NaN` fails its own return type check
+tags: bug
+
+`sleep NaN` returns at once. `sleep-timer` is documented as working like
+`sleep`, with the signature `sleep-timer(Real() $seconds --> Duration:D)`,
+and NaN is a Real. In Rakudo 2026.08 `sleep-timer NaN` throws
+`X::TypeCheck::Return` instead: the value it returns is not a Duration but
+a Rat of 0/0 with an internal role mixed in, as the message shows.
+
+```raku local
+say (sleep NaN).raku;
+try sleep-timer NaN;
+say $!.^name;
+say $!.message;
+```
+```output
+Nil
 X::TypeCheck::Return
+Type check failed for return value; expected Duration:D but got Rat+{Duration::add-tai} (<0/0>)
 ```
 
 ## `Lock.protect` returns what its block returns, container and all
@@ -1415,7 +1433,9 @@ The number of permits is kept in 32 bits. Counts up to `2**31 - 1` work;
 from `2**31` to `2**32 - 1` they are refused. From `2**32` on, Rakudo
 2026.08 accepts the count silently and keeps only its low 32 bits, so
 `2**32` gives a semaphore with no permits at all and `2**32 + 1` one with a
-single permit. A big count should be refused or honoured, not wrapped.
+single permit. The documentation describes the count as the number of
+acquires that pass before one blocks; here a count of `2**32 + 1` lets one
+pass, while the smaller `2**31` is refused outright.
 
 ```raku
 for 2**31 - 1, 2**31, 2**32, 2**32 + 1 -> $n {

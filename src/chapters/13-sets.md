@@ -409,8 +409,8 @@ X::Cannot::Lazy
 A conversion keeps what the target type can hold. `.Set` of a Bag or a Mix
 keeps the elements with a positive weight, so a Mix loses its negative
 elements and keeps its fractional ones. `.Bag` of a Mix keeps each weight's
-`.Int` and drops the elements that truncate to zero or less (but see [a bug
-below](#ch:sets:bag-of-a-mix-truncates-the-mix-itself)). A
+`.Int` and drops the elements that truncate to zero or less (but see [what
+it does to the Mix](#ch:sets:bag-of-a-mix-truncates-the-mix-itself)). A
 Set's elements weigh 1 in a Bag or a Mix.
 
 ```raku
@@ -463,11 +463,12 @@ False
 ## `.Bag` of a Mix truncates the Mix itself
 tags: bug unasserted
 
-A conversion is meant to leave its invocant alone. In Rakudo 2026.08,
-`.Bag` and `.BagHash` of a Mix or a MixHash also rewrite the *source*: every
-weight of 1 or more becomes its `.Int`. Weights below 1 are left as they
-were, and `.Set` and `.MixHash` do not touch the source. A total computed
-before the conversion is remembered, so afterwards the Mix no longer adds up:
+The documentation calls a Mix immutable and describes `.Bag` as a coercion
+to a Bag. In Rakudo 2026.08, `.Bag` and `.BagHash` of a Mix or a MixHash also
+rewrite the *source*: every weight of 1 or more becomes its `.Int`. Weights
+below 1 are left as they were, and `.Set` and `.MixHash` do not touch the
+source. A total computed before the conversion is remembered, so afterwards
+the Mix no longer adds up:
 
 ```raku
 my $m = ("a" => 2.7, "b" => 0.5).Mix;
@@ -578,11 +579,12 @@ X::Multi::NoMatch
 ## `my %h is Set;` without a value is unusable
 tags: bug
 
-Declared without an initializer, an `is Set` variable should hold an empty
-Set. In Rakudo 2026.08 it holds an object that claims to be a Set but throws
-`X::AdHoc` from `.elems`, `.gist` and `.raku`, while its `.keys` is empty.
-Being immutable, it cannot be assigned afterwards either. `is Bag` behaves
-the same, and `is SetHash` is fine:
+The documentation lists `my %set is Set;`, with no initializer, as the way to
+declare a Set variable. In Rakudo 2026.08 such a variable holds an object
+that claims to be a Set but throws `X::AdHoc` from `.elems`, `.gist` and
+`.raku`, with a message about a Scalar, while its `.keys` is empty. Being
+immutable, it cannot be assigned afterwards either. `is Bag` behaves the
+same, and `is SetHash` works:
 
 ```raku
 my %h is Set;
@@ -1656,11 +1658,12 @@ True
 ## `∩` of two Hashes ignores false values
 tags: bug
 
-A Hash stands for the set of its keys with true values, and every operator
-treats it so, except one case. When both operands of `∩` are plain Hashes,
-Rakudo 2026.08 takes a shortcut that compares only the keys, so a key whose
-value is false is an element after all. Converting either side first, or
-any other operand, gives the intended answer:
+The documentation says a set operator treats an operand as if it called
+`.Set` on it, and that `.Set` of a Hash skips the keys whose values are
+false. Every operator does so, except in one case: when both operands of `∩`
+are plain Hashes, Rakudo 2026.08 compares only the keys, so a key whose value
+is false is an element after all. Converting either side first, or any other
+operand, leaves the false key out:
 
 ```raku
 say { a => 1, b => 0 } ∩ { a => 1, b => 1 };
@@ -2147,11 +2150,11 @@ Junction
 X::AdHoc
 ```
 
-The operators that build a collection were meant to autothread the same
-way. In Rakudo 2026.08, `∖` and `⊖` die with "Cannot iterate object with
-P6opaque representation (Junction)", and `∪`, `∩`, `⊎` and `⊍` with a
-Junction on either side never return. Each of these lines hangs until it is
-killed:
+The operators that build a collection do not autothread. In Rakudo 2026.08,
+`∖` and `⊖` die with "Cannot iterate object with P6opaque representation
+(Junction)", a message that names the virtual machine's representation of
+the object, and `∪`, `∩`, `⊎` and `⊍` with a Junction on either side never
+return. Each of these lines runs until it is killed:
 
 ```raku nocheck
 say set(1) (|) any(2, 3);

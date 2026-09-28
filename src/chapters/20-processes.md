@@ -411,8 +411,9 @@ tags: quirk
 `:bin` makes every pipe of the Proc binary: `.slurp` gives a `Buf[uint8]`,
 `.encoding` is `Nil`, and `.in.write` sends bytes. The text methods, `get`,
 `lines` and `.in.print`, throw `X::IO::Closed` and say the handle is closed,
-although it is open: a binary pipe has nothing to turn bytes into text, and
-`X::IO::BinaryMode` would have been the fitting exception. `:enc` sets the
+although it is open: a binary pipe has nothing to turn bytes into text. A
+file handle opened with `:bin` answers the same calls with
+`X::IO::BinaryMode`, which says so. `:enc` sets the
 encoding of every pipe, in both directions, and `.encoding` reports the
 canonical name. A text pipe can still give bytes with `.slurp(:bin)`.
 
@@ -446,9 +447,9 @@ valid UTF-8 make `slurp` and `get` die (see also
 ## `read($n)` on a binary pipe returns a whole chunk, whatever `$n` is
 tags: bug unasserted
 
-The documentation says that `read($n)` returns at most `$n` bytes. On a pipe
-opened with `:bin`, Rakudo 2026.08 ignores the count and returns everything
-that has arrived in one piece, which is whatever the program wrote in one go.
+The documentation says that `read($n)` returns up to `$n` bytes. On a pipe
+opened with `:bin`, Rakudo 2026.08 returns everything that has arrived in
+one piece, whatever the count, which is whatever the program wrote in one go.
 The next `read` has nothing left. On a text pipe the count is kept, as it is
 by `readchars` and `getc`, and a `read` goes on from where they stopped:
 
@@ -637,8 +638,7 @@ say $r.exitcode, " ", $r.command.raku;
 0 ("exit 9",)
 ```
 
-The intended behaviour is -1 before any spawn, and each spawn's own status
-after it. Use a new Proc for each program.
+Use a new Proc for each program.
 
 ## `Proc::Async.new` ignores the named arguments it does not know
 tags: quirk
